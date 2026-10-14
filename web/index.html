@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2f6b3f">
+<title>小隐 · 自然探究伙伴</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div id="app" class="app">
+
+  <!-- 顶部：角色与身份 -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="avatar" id="brandAvatar" aria-hidden="true">
+        <img src="/assets/avatar/xiaoyin_idle.svg" alt="小隐" id="brandAvatarImg">
+      </div>
+      <div class="brand-text">
+        <div class="brand-name"><span id="charName">小隐</span><span class="ai-tag">AI 伙伴</span></div>
+        <div class="brand-sub" id="brandSub">自然探究 AI 伙伴 · 大班科学</div>
+      </div>
+    </div>
+    <button class="icon-btn" id="btnNew" title="开始新对话" aria-label="开始新对话">↺</button>
+  </header>
+
+  <!-- 主体 -->
+  <main class="main" id="main">
+    <!-- 首屏欢迎区 -->
+    <section class="welcome" id="welcome">
+      <div class="hero">
+        <div class="hero-avatar" id="heroAvatar" aria-hidden="true">
+          <img src="/assets/avatar/xiaoyin_idle.svg" alt="小隐" id="heroAvatarImg">
+        </div>
+        <div class="hero-bubble" id="welcomeText">你好呀！我是小隐，你的自然探究小伙伴。</div>
+      </div>
+
+      <div class="task-card">
+        <div class="task-label">今天的探究任务</div>
+        <div class="task-title" id="taskTitle">走进神秘的大森林</div>
+        <div class="task-goal" id="taskGoal"></div>
+        <div class="task-path">
+          <span>观察现象</span><i>→</i><span>提出猜想</span><i>→</i><span>寻找证据</span><i>→</i><span>比较解释</span><i>→</i><span>迁移应用</span>
+        </div>
+      </div>
+
+      <div class="quick">
+        <div class="quick-label">你可以这样问我</div>
+        <div class="quick-list" id="quickList"></div>
+      </div>
+
+      <div class="voice-entry">
+        <button class="voice-big" id="btnVoiceBig">
+          <span class="mic-dot"></span>开始语音对话
+        </button>
+        <div class="voice-hint" id="voiceHint"></div>
+      </div>
+    </section>
+
+    <!-- 对话区 -->
+    <section class="chat" id="chat" hidden></section>
+  </main>
+
+  <!-- 状态提示 -->
+  <div class="status" id="status" hidden><span class="spinner"></span><span id="statusText"></span></div>
+
+  <!-- 识别结果可编辑区 -->
+  <div class="asr-edit" id="asrEdit" hidden>
+    <div class="asr-label">我听到的是（可以修改后再发送）</div>
+    <textarea id="asrText" rows="2"></textarea>
+    <div class="asr-actions">
+      <button class="btn ghost" id="btnAsrCancel">取消</button>
+      <button class="btn" id="btnAsrSend">发送</button>
+    </div>
+  </div>
+
+  <!-- 照片预览 -->
+  <div class="photo-preview" id="photoPreview" hidden>
+    <img id="photoImg" alt="待发送的照片">
+    <div class="photo-info">
+      <div class="photo-name" id="photoName"></div>
+      <div class="photo-size" id="photoSize"></div>
+    </div>
+    <div class="photo-actions">
+      <button class="btn ghost small" id="btnPhotoReplace">替换</button>
+      <button class="btn ghost small danger" id="btnPhotoDelete">删除</button>
+    </div>
+    <input type="text" id="photoQuestion" placeholder="想问我照片里的什么？（可以不填）">
+  </div>
+
+  <!-- 底部输入栏 -->
+  <footer class="inputbar" id="inputbar">
+    <button class="mode-toggle" id="btnModeToggle" aria-label="切换语音或文字">
+      <span id="modeIcon">⌨</span><span id="modeLabel">文字</span>
+    </button>
+    <div class="text-wrap">
+      <input type="text" id="textInput" placeholder="说说你发现了什么…" autocomplete="off">
+    </div>
+    <button class="icon-btn round" id="btnPhoto" title="拍照或选择照片" aria-label="拍照或选择照片">📷</button>
+    <button class="send-btn" id="btnSend" aria-label="发送">发送</button>
+    <button class="send-btn stop" id="btnStop" hidden aria-label="停止生成">停止</button>
+    <input type="file" id="fileInput" accept="image/*" hidden>
+  </footer>
+
+  <!-- 录音浮层 -->
+  <div class="rec-layer" id="recLayer" hidden>
+    <div class="rec-card">
+      <div class="rec-wave"><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="rec-title">正在听你说…</div>
+      <div class="rec-tip">说完点“停止”，我就能听懂啦</div>
+      <button class="btn danger big" id="btnRecStop">停止录音</button>
+      <button class="btn ghost" id="btnRecCancel">取消发送</button>
+    </div>
+  </div>
+
+</div>
+<script src="/static/app.js"></script>
+</body>
+</html>
