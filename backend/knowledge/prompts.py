@@ -135,7 +135,7 @@ def build_messages(system_prompt, history, user_text):
     for h in history:
         role = h.get('role')
         content = h.get('content')
-        if role in ('user', 'user') and content:
+        if role in ('user', 'assistant') and content:
             msgs.append({'role': role, 'content': content})
     msgs.append({'role': 'user', 'content': user_text})
     return msgs
