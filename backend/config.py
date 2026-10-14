@@ -248,7 +248,7 @@ def capability_report(cfg):
                 'label': '语音合成已配置' if tts_ready else '语音合成（TTS）未配置——可先用浏览器朗读（备选，中文效果依赖系统语音）',
                 'provider': tts.get('provider') or '', 'voice': tts.get('voice') or ''},
         'browser_speech_fallback': {
-            'asr': '浏览器原生语音识别仅部分浏览器支持（Chrome/Edge 桌面与部分安卓），需 HTTPS 与用户首次授权；微信内置浏览器通常不支持，作为通用方案。',
+            'asr': '浏览器原生语音识别仅部分浏览器支持（Chrome/Edge 桌面与部分安卓），需 HTTPS 与用户首次授权；微信内置浏览器通常不支持，不作为通用方案。',
             'tts': '浏览器 speechSynthesis 朗读为备选方案，中文音色与可用性依赖终端系统语音包，效果不稳定。'
         }
     }
