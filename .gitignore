@@ -1,0 +1,41 @@
+# -*- coding: utf-8 -*-
+"""Git 忽略规则：密钥、会话数据、学生照片/录音、原始课件、渲染图片一律不得入库。
+
+对应比赛要求：GitHub 中不得包含密钥、学生照片录音、个人资料、原始课件或资料渲染图片。
+"""
+# ---- 密钥与本地配置 ----
+config/config.json
+config/*.local.json
+.env
+*.pem
+*.key
+
+# ---- 运行期数据（含学生会话；原图不落盘，但会话文字记录仍在） ----
+data/
+!data/.gitkeep
+
+# ---- 原始课件与资料渲染图（版权归教师本人，不公开） ----
+*.pdf
+*.doc
+*.docx
+tools/render_course/
+tools/render_course_small/
+tools/render_notice/
+tools/_doc_raw.txt
+
+# ---- 学生照片/录音（即使误存也不得入库） ----
+*.webm
+*.wav
+*.mp3
+*.ogg
+*.m4a
+uploads/
+photos/
+
+# ---- 构建与系统杂项 ----
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+desktop/build/
+*.log
