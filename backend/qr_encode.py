@@ -381,7 +381,7 @@ def _rebuild_reserved(version):
                 continue
             for r in range(-2, 3):
                 for c in range(-2, 3):
-                    res[r0 + r, c0 + c] = True
+                    res[r0 + r][c0 + c] = True
     for i in range(9):
         res[8][i] = True
         res[i][8] = True
