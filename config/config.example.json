@@ -1,0 +1,87 @@
+{
+  "_comment": "配置模板。复制为 config/config.json 后填写（密钥只保存在本机，切勿提交到 Git）。所有字段均可留空，留空时系统明确显示“未配置”，不会用固定回答冒充真实 AI。",
+  "server": {
+    "host": "0.0.0.0",
+    "port": 8000,
+    "public_base_url": "",
+    "allow_cors_origins": [],
+    "trust_proxy_headers": false,
+    "admin_token": ""
+  },
+  "character": {
+    "name": "小隐",
+    "alias": "AI森林小博士",
+    "course_name": "解锁大自然的隐身魔法",
+    "welcome": "你好呀！我是小隐，你的自然探究小伙伴。今天我们一起走进大森林，去找会隐身的小动物吧！"
+  },
+  "llm": {
+    "primary": {
+      "provider": "doubao",
+      "base_url": "https://ark.cn-beijing.volces.com/api/v3",
+      "model": "",
+      "endpoint_id": "",
+      "api_key": "",
+      "api_key_env": "ARK_API_KEY"
+    },
+    "fallback": {
+      "provider": "deepseek",
+      "base_url": "https://api.deepseek.com",
+      "model": "deepseek-chat",
+      "api_key": "",
+      "api_key_env": "DEEPSEEK_API_KEY"
+    },
+    "timeout_seconds": 60,
+    "max_retries": 2,
+    "stream": true,
+    "temperature": 0.6,
+    "max_tokens": 512
+  },
+  "vision": {
+    "_comment": "多模态图片分析。必须使用支持图片输入的模型；DeepSeek 文本模型会被代码显式拦截。",
+    "provider": "doubao",
+    "base_url": "https://ark.cn-beijing.volces.com/api/v3",
+    "model": "",
+    "api_key": "",
+    "api_key_env": "ARK_API_KEY",
+    "enabled": false
+  },
+  "asr": {
+    "_comment": "语音识别。当前仅实现火山引擎「录音文件识别极速版 HTTP」适配器（docs.volcengine.com/docs/DoubaoVoice/recording-file-recognition-lite-http）。",
+    "provider": "",
+    "base_url": "https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash",
+    "model": "bigmodel",
+    "resource_id": "volc.bigasr.auc_turbo",
+    "api_key": "",
+    "api_key_env": "ASR_API_KEY",
+    "app_id": "",
+    "app_id_env": "ASR_APP_ID",
+    "enabled": false
+  },
+  "tts": {
+    "_comment": "语音合成。已实现 volcengine 与 openai_compatible 两种；cluster/voice 须以控制台实际开通为准。",
+    "provider": "",
+    "base_url": "",
+    "model": "",
+    "api_key": "",
+    "api_key_env": "TTS_API_KEY",
+    "app_id": "",
+    "cluster": "",
+    "voice": "",
+    "enabled": false
+  },
+  "limits": {
+    "max_input_chars": 300,
+    "max_image_mb": 5,
+    "rate_per_minute_per_session": 20,
+    "rate_per_minute_global": 300,
+    "max_history_turns": 40,
+    "min_keep_turns": 10,
+    "context_token_budget": 6000,
+    "session_ttl_hours": 12,
+    "max_image_refs": 5
+  },
+  "modes": {
+    "demo": false,
+    "demo_label": "演示模式（非真实 AI，使用课程知识库固定规则回答）"
+  }
+}
