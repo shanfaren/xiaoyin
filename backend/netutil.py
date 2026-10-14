@@ -36,7 +36,7 @@ def all_ipv4():
 
 
 def candidate_urls(port, public_base_url=''):
-    """给出候选访问地址（用于二维码与二维码与连通检测）。"""
+    """给出候选访问地址（用于二维码与连通检测）。"""
     urls = []
     if public_base_url:
         urls.append({'url': public_base_url.rstrip('/') + '/scan', 'kind': 'public', 'label': '公网/正式域名'})
