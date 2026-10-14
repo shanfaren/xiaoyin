@@ -1,423 +1,153 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>教师端 · 小隐课程智能体</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>小隐 · 教师端</title>
 <style>
-  :root{
-    --forest-900:#1d3b28; --forest-700:#2f6b3f; --forest-500:#4a8f56;
-    --leaf-200:#d7e9cf; --cream:#fbf7ec; --cream-2:#f3edda; --sun:#f2c14e;
-    --ink:#1c2a1e; --ink-soft:#4a5c4d; --clay:#c8552f;
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;height:100%;}
-  body{
-    font-family:"PingFang SC","Microsoft YaHei","Noto Sans CJK SC",system-ui,sans-serif;
-    background:linear-gradient(180deg,#f4f9ef,var(--cream));color:var(--ink);font-size:15px;
-  }
-  .wrap{max-width:1080px;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:14px;height:100%;}
-  header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
-  .title{font-size:20px;font-weight:900;color:var(--forest-900);}
-  .tabs{display:flex;gap:8px;}
-  .tab{
-    padding:8px 16px;border-radius:999px;border:1.5px solid var(--leaf-200);background:#fff;
-    font-weight:800;cursor:pointer;font-family:inherit;color:var(--forest-700);font-size:14.5px;
-  }
-  .tab.on{background:var(--forest-700);color:#fff;border-color:var(--forest-700);}
-  .panel{display:none;flex-direction:column;gap:12px;flex:1;min-height:0;}
-  .panel.on{display:flex;}
-  .grid2{display:grid;grid-template-columns:280px 1fr;gap:14px;flex:1;min-height:0;}
-  @media (max-width:860px){ .grid2{grid-template-columns:1fr;} }
-  .card{background:#fff;border:1px solid var(--leaf-200);border-radius:16px;padding:14px;box-shadow:0 3px 12px rgba(29,59,40,.07);}
-  .card h3{margin:0 0 10px;font-size:15px;color:var(--forest-700);}
-  label{display:block;font-size:13px;font-weight:700;color:var(--ink-soft);margin:8px 0 4px;}
-  select,input,textarea{
-    width:100%;border:1.5px solid var(--leaf-200);border-radius:10px;padding:9px 11px;
-    font-family:inherit;font-size:14.5px;background:var(--cream);color:var(--ink);
-  }
-  textarea{resize:vertical;line-height:1.6;}
-  button.act{
-    border:none;border-radius:10px;background:var(--forest-700);color:#fff;padding:9px 15px;
-    font-weight:800;font-family:inherit;cursor:pointer;font-size:14.5px;
-  }
-  button.act.ghost{background:var(--cream);color:var(--forest-700);border:1.5px solid var(--leaf-200);}
-  button.act.stop{background:var(--clay);}
-  button.act.small{padding:6px 11px;font-size:13.5px;}
-  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
-  .chat{flex:1;overflow-y:auto;border:1px solid var(--leaf-200);border-radius:12px;padding:12px;background:var(--cream-2);min-height:240px;}
-  .m{margin-bottom:10px;padding:9px 12px;border-radius:12px;white-space:pre-wrap;line-height:1.62;font-size:15px;}
-  .m.u{background:var(--forest-700);color:#fff;margin-left:12%;}
-  .m.a{background:#fff;border:1px solid var(--leaf-200);margin-right:8%;}
-  .m.meta{background:#eef6e9;font-size:12.5px;color:var(--ink-soft);font-family:ui-monospace,Consolas,monospace;}
-  .m.err{background:#fdeae4;border:1px solid #f3c3b4;color:#8a2c1a;}
-  .pill{display:inline-block;font-size:12px;font-weight:800;border-radius:999px;padding:2px 9px;margin-right:6px;}
-  .pill.ok{background:#dff3e0;color:#1d5c2a;}
-  .pill.no{background:#fde8e2;color:#8a2c1a;}
-  .pill.warn{background:#ffeec2;color:#7a5a12;}
-  .qlist{display:flex;flex-direction:column;gap:6px;max-height:220px;overflow:auto;}
-  .qlist button{text-align:left;font-size:14px;}
-  .kv{font-size:13.5px;line-height:1.9;}
-  .kv code{background:#eef6e9;padding:1px 6px;border-radius:6px;font-size:12.5px;word-break:break-all;}
-  .qrbox{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;}
-  .qrbox img{width:220px;height:220px;border:1px solid var(--leaf-200);border-radius:12px;background:#fff;}
-  .note{font-size:13px;color:#7a5a12;background:#fdf3d8;border:1px solid #f0dca6;border-radius:10px;padding:9px 12px;line-height:1.6;}
-  .hint{font-size:12.5px;color:var(--ink-soft);line-height:1.6;}
-  .filelist{font-size:13px;line-height:1.8;}
+:root{--f9:#1d3b28;--f7:#2f6b3f;--f5:#4a8f56;--leaf:#d7e9cf;--cream:#fbf7ec;--cream2:#f5efdd;--sun:#f2c14e;--clay:#c8552f;--ink:#1c2a1e;--soft:#4a5c4d;--white:#fff;--shadow:0 6px 20px rgba(29,59,40,.12);}
+*{box-sizing:border-box;}
+[hidden]{display:none !important;}
+html,body{margin:0;height:100%;}
+body{font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;background:linear-gradient(180deg,#f4f9ef,var(--cream2));color:var(--ink);font-size:15px;}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;background:linear-gradient(180deg,#fff,#f0f7ec);border-bottom:1px solid var(--leaf);}
+header h1{font-size:18px;margin:0;color:var(--f9);}
+header .sub{font-size:12.5px;color:var(--soft);}
+.wrap{max-width:1100px;margin:0 auto;padding:16px 18px;display:grid;grid-template-columns:300px 1fr;gap:16px;}
+.card{background:var(--white);border:1px solid var(--leaf);border-radius:14px;padding:14px;box-shadow:var(--shadow);}
+.card h2{font-size:15px;margin:0 0 10px;color:var(--f7);}
+label{display:block;font-size:13px;font-weight:700;color:var(--f7);margin:8px 0 4px;}
+select,input,textarea{width:100%;border:1.5px solid var(--leaf);border-radius:9px;padding:8px 10px;font-size:14px;font-family:inherit;background:var(--cream);}
+textarea{resize:vertical;min-height:90px;}
+.row{display:flex;gap:8px;flex-wrap:wrap;}
+.btn{border:none;border-radius:9px;background:var(--f7);color:#fff;padding:9px 14px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
+.btn.ghost{background:var(--cream);color:var(--f7);border:1.5px solid var(--leaf);}
+.btn.big{padding:11px;font-size:15px;}
+.chat{height:520px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:10px;background:var(--cream);border-radius:10px;border:1px solid var(--leaf);}
+.m{max-width:82%;padding:8px 12px;border-radius:12px;font-size:14px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;}
+.m.a{background:#fff;border:1px solid var(--leaf);align-self:flex-start;}
+.m.u{background:var(--f7);color:#fff;align-self:flex-end;}
+.m.meta{align-self:center;background:transparent;color:var(--soft);font-size:12.5px;box-shadow:none;}
+.m.err{background:#fdeae4;border:1px solid #f3c3b4;color:#8a2c1a;}
+.cap{display:flex;flex-direction:column;gap:8px;font-size:13px;}
+.cap-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:9px;background:var(--cream);}
+.cap-item .k{font-weight:700;color:var(--f9);}
+.badge{font-size:12px;font-weight:700;border-radius:999px;padding:2px 9px;}
+.badge.on{background:#d9f0d2;color:#2f6b3f;}
+.badge.off{background:#f0e6d8;color:#8a6a3a;}
+.badge.demo{background:#ffe9b0;color:#8a5a00;}
+.qr{display:flex;flex-direction:column;gap:8px;align-items:center;}
+.qr img{width:220px;height:220px;}
+.qr .url{font-size:12.5px;color:var(--soft);word-break:break-all;text-align:center;}
+.bottom{display:flex;gap:8px;margin-top:8px;}
+@media(max-width:860px){.wrap{grid-template-columns:1fr;}.chat{height:360px;}}
 </style>
 </head>
 <body>
+<header>
+  <div>
+    <h1>小隐 · 教师端控制台</h1>
+    <div class="sub">《解锁大自然的隐身魔法》课程智能体</div>
+  </div>
+  <div class="row">
+    <button class="btn ghost" id="scanBtn">打开扫码页</button>
+    <button class="btn ghost" id="studentBtn">打开学生端</button>
+  </div>
+</header>
 <div class="wrap">
-  <header>
-    <div>
-      <div class="title">小隐 · 教师端</div>
-      <div class="hint" id="whoami">正在读取状态…</div>
+  <div style="display:flex;flex-direction:column;gap:14px;">
+    <div class="card">
+      <h2>教学环节</h2>
+      <label>当前环节</label>
+      <select id="stageSel">
+        <option value="">通用（不限环节）</option>
+        <option value="s1">环节一 · 情境导入</option>
+        <option value="s2">环节二 · 观察发现</option>
+        <option value="s3">环节三 · 闯关探究</option>
+        <option value="s4">环节四 · 分享收获</option>
+        <option value="s5">环节五 · 拓展延伸</option>
+      </select>
+      <label>教学模式</label>
+      <select id="modeSel">
+        <option value="normal">常规课堂</option>
+        <option value="tablet">平板探究</option>
+        <option value="share">分享交流</option>
+      </select>
+      <label>系统提示（可选，附加指令）</label>
+      <textarea id="sysExtra" placeholder="如：多用比喻；少讲术语……"></textarea>
     </div>
-    <div class="tabs">
-      <button class="tab on" data-panel="teach">课堂对话</button>
-      <button class="tab" data-panel="setup">设置与二维码</button>
+    <div class="card">
+      <h2>能力状态</h2>
+      <div class="cap" id="capList"><div class="cap-item">加载中…</div></div>
     </div>
-  </header>
-
-  <!-- 课堂对话 -->
-  <section class="panel on" id="panel-teach">
-    <div class="grid2">
-      <div style="display:flex;flex-direction:column;gap:12px;min-height:0;">
-        <div class="card">
-          <h3>当前教学环节</h3>
-          <select id="stageSel"></select>
-          <div class="hint" id="stageInfo" style="margin-top:8px;"></div>
-          <label>对话模式</label>
-          <select id="modeSel">
-            <option value="teacher">教师课堂展示模式（可给完整解释）</option>
-            <option value="student">学生探究模式（先提示、只追问一个问题）</option>
-          </select>
-        </div>
-        <div class="card" style="flex:1;min-height:0;display:flex;flex-direction:column;">
-          <h3>示范提问</h3>
-          <div class="qlist" id="demoQ"></div>
-        </div>
+    <div class="card qr">
+      <h2 style="align-self:flex-start">课堂二维码</h2>
+      <img id="qrImg" alt="二维码" class="" src="/api/qrcode.png?type=scan">
+      <div class="url" id="qrUrl"></div>
+      <div class="row" style="justify-content:center;">
+        <button class="btn ghost" id="checkBtn">网络自检</button>
       </div>
-
-      <div class="card" style="display:flex;flex-direction:column;gap:10px;min-height:0;">
-        <h3>对话</h3>
-        <div class="chat" id="chat"></div>
-        <textarea id="input" rows="3" placeholder="输入要问小隐的内容（Enter 发送，Shift+Enter 换行）"></textarea>
-        <div class="row">
-          <button class="act" id="send">发送</button>
-          <button class="act stop" id="stop" hidden>停止生成</button>
-          <button class="act ghost" id="play">播放最近回复</button>
-          <button class="act ghost" id="stopPlay">停止播放</button>
-          <button class="act ghost" id="collapse">收起面板</button>
-          <button class="act ghost" id="clear">清空本会话</button>
-        </div>
-        <div class="hint" id="capHint"></div>
-      </div>
+      <div class="cap" id="checkResult"></div>
     </div>
-  </section>
-
-  <!-- 设置与二维码 -->
-  <section class="panel" id="panel-setup">
-    <div class="grid2">
-      <div style="display:flex;flex-direction:column;gap:12px;">
-        <div class="card">
-          <h3>能力状态（不显示密钥）</h3>
-          <div class="kv" id="capList"></div>
-        </div>
-        <div class="card">
-          <h3>二维码与访问地址</h3>
-          <div class="row">
-            <button class="act small" id="refreshNet">刷新网络与连通检测</button>
-            <a class="act ghost" id="scanPage" href="/scan" target="_blank" style="text-decoration:none;display:inline-block;">打开扫码入口单页</a>
-          </div>
-          <div class="qrbox" style="margin-top:10px;">
-            <img id="qr" src="/api/qrcode.png?scale=8" alt="二维码">
-            <div style="flex:1;min-width:220px;">
-              <div class="kv" id="netInfo"></div>
-            </div>
-          </div>
-          <div class="note" style="margin-top:10px;">
-            学生二维码必须指向实际可达地址，系统已禁止把 localhost / 127.0.0.1 编码进二维码。
-          </div>
-        </div>
-      </div>
-
-      <div style="display:flex;flex-direction:column;gap:12px;">
-        <div class="card">
-          <h3>API 配置（密钥仅保存在本机 config/config.json）</h3>
-          <div class="note">
-            未填写密钥时，系统会明确显示「未配置」，不会用固定回答冒充真实 AI。
-            如需演示模式，请用启动参数 <code>--demo</code>，界面会标注「非真实 AI」。
-          </div>
-          <label>主模型 · 供应商</label>
-          <select id="p_provider"><option value="doubao">doubao（火山方舟）</option><option value="deepseek">deepseek</option><option value="openai_compatible">openai_compatible</option></select>
-          <label>主模型 · base_url</label><input id="p_base" placeholder="https://ark.cn-beijing.volces.com/api/v3">
-          <label>主模型 · 模型名 / 接入点 ID</label><input id="p_model" placeholder="ep-xxxx 或 doubao-...">
-          <label>主模型 · API Key</label><input id="p_key" type="password" placeholder="留空表示不修改">
-          <hr style="border:none;border-top:1px solid var(--leaf-200);margin:12px 0;">
-          <label>备用模型 · 供应商</label>
-          <select id="f_provider"><option value="deepseek">deepseek</option><option value="doubao">doubao</option><option value="openai_compatible">openai_compatible</option></select>
-          <label>备用模型 · base_url</label><input id="f_base" placeholder="https://api.deepseek.com">
-          <label>备用模型 · 模型名</label><input id="f_model" placeholder="deepseek-chat">
-          <label>备用模型 · API Key</label><input id="f_key" type="password" placeholder="留空表示不修改">
-          <hr style="border:none;border-top:1px solid var(--leaf-200);margin:12px 0;">
-          <label>多模态图片分析 · 模型名（须支持图片输入）</label><input id="v_model" placeholder="如支持视觉的豆包模型">
-          <label>多模态 · API Key</label><input id="v_key" type="password" placeholder="留空表示不修改">
-          <label>多模态 · 启用</label>
-          <select id="v_enabled"><option value="false">未启用</option><option value="true">启用</option></select>
-          <hr style="border:none;border-top:1px solid var(--leaf-200);margin:12px 0;">
-          <label>语音识别 ASR · 供应商</label>
-          <select id="a_provider"><option value="">未选择</option><option value="volcengine">volcengine（火山引擎录音文件识别极速版）</option></select>
-          <label>ASR · base_url</label><input id="a_base" placeholder="https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash">
-          <label>ASR · APP ID（旧版控制台需要）</label><input id="a_appid" placeholder="可选">
-          <label>ASR · API Key / Access Token</label><input id="a_key" type="password" placeholder="留空表示不修改">
-          <label>ASR · 启用</label>
-          <select id="a_enabled"><option value="false">未启用</option><option value="true">启用</option></select>
-          <hr style="border:none;border-top:1px solid var(--leaf-200);margin:12px 0;">
-          <label>语音合成 TTS · 供应商</label>
-          <select id="t_provider"><option value="">未选择</option><option value="volcengine">volcengine</option><option value="openai_compatible">openai_compatible</option></select>
-          <label>TTS · base_url</label><input id="t_base" placeholder="https://openspeech.bytedance.com/api/v1/tts">
-          <label>TTS · APP ID</label><input id="t_appid" placeholder="火山引擎语音合成 APP ID">
-          <label>TTS · cluster</label><input id="t_cluster" placeholder="以控制台实际开通为准">
-          <label>TTS · 音色 voice</label><input id="t_voice" placeholder="以控制台音色列表为准">
-          <label>TTS · API Key / Access Token</label><input id="t_key" type="password" placeholder="留空表示不修改">
-          <label>TTS · 启用</label>
-          <select id="t_enabled"><option value="false">未启用</option><option value="true">启用</option></select>
-          <hr style="border:none;border-top:1px solid var(--leaf-200);margin:12px 0;">
-          <label>服务器 · 公网基础地址（用于公网二维码）</label><input id="s_base" placeholder="https://your-domain.example.com">
-          <label>服务器 · 端口</label><input id="s_port" placeholder="8000">
-          <div class="row" style="margin-top:12px;">
-            <button class="act" id="saveCfg">保存配置</button>
-            <button class="act ghost" id="reloadCfg">重新读取</button>
-          </div>
-          <div class="hint" id="saveMsg" style="margin-top:8px;"></div>
-        </div>
-      </div>
+  </div>
+  <div class="card">
+    <h2>教师对话（可实时预览学生端体验）</h2>
+    <div class="chat" id="chat"></div>
+    <div class="bottom">
+      <textarea id="input" placeholder="输入学生可能问的问题，回车发送（Shift+回车换行）"></textarea>
     </div>
-  </section>
+    <div class="row" style="margin-top:8px;justify-content:space-between;">
+      <button class="btn ghost" id="clearBtn">清空</button>
+      <button class="btn big" id="sendBtn">发送</button>
+    </div>
+  </div>
 </div>
-
 <script>
-var S = { sid:'', stage:null, stages:[], last:'' , cap:null };
 function $(id){return document.getElementById(id);}
-function jget(u){return fetch(u).then(function(r){return r.json();});}
-function jpost(u,b){return fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})}).then(function(r){return r.json().then(function(j){return {status:r.status,body:j};});});}
-
-document.querySelectorAll('.tab').forEach(function(t){
-  t.addEventListener('click',function(){
-    document.querySelectorAll('.tab').forEach(function(x){x.classList.remove('on');});
-    document.querySelectorAll('.panel').forEach(function(x){x.classList.remove('on');});
-    t.classList.add('on');
-    $('panel-'+t.dataset.panel).classList.add('on');
-  });
-});
-
+var sid='teacher-'+Math.random().toString(36).slice(2,10);
+var es=null;
 function line(t){var d=document.createElement('div');d.className='m meta';d.textContent=t;$('chat').appendChild(d);$('chat').scrollTop=1e9;}
-function msg(role,text){var d=document.createElement('div');d.className='m '+role;d.textContent=t;$('chat').appendChild(d);$('chat').scrollTop=1e9;return d;}
+function msg(role,text){var d=document.createElement('div');d.className='m '+role;d.textContent=text;$('chat').appendChild(d);$('chat').scrollTop=1e9;return d;}
 
-function renderCaps(cap){
-  S.cap=cap;
-  function p(state){return state==='configured'?'<span class="pill ok">已配置</span>':(state==='demo'?'<span class="pill warn">演示模式</span>':'<span class="pill no">未配置</span>');}
-  $('capList').innerHTML =
-    '大模型：'+p(cap.llm.state)+'<code>'+cap.llm.label+'</code><br>'+
-    '图片分析：'+p(cap.vision.state)+'<code>'+cap.vision.label+'</code><br>'+
-    '语音识别 ASR：'+p(cap.asr.state)+'<code>'+cap.asr.label+'</code><br>'+
-    '语音合成 TTS：'+p(cap.tts.state)+'<code>'+cap.tts.label+'</code>';
-  $('capHint').innerHTML = '大模型：'+p(cap.llm.state)+cap.llm.label+
-    '　图片分析：'+p(cap.vision.state)+'　ASR：'+p(cap.asr.state)+'　TTS：'+p(cap.tts.state);
-}
+function ensureSSE(){return new Promise(function(resolve){if(es){return resolve(es);} es=new EventSource('/api/stream?sid='+encodeURIComponent(sid));
+  es.addEventListener('meta',function(e){try{var d=JSON.parse(e.data);if(d.demo)line('演示模式（非真实 AI）');}catch(_){}});
+  es.addEventListener('delta',function(e){if(!cur){cur=msg('a','');}cur.textContent+=e.data;$('chat').scrollTop=1e9;});
+  es.addEventListener('done',function(e){cur=null;try{var d=JSON.parse(e.data);line('轮次 '+d.round+' · '+(d.is_real_ai?'真实 AI':'演示内容')+' · 会话 '+d.context_count);}catch(_){}});
+  es.addEventListener('error',function(e){var d=document.createElement('div');d.className='m err';d.textContent='连接错误，请重试';$('chat').appendChild(d);cur=null;});
+  es.onopen=function(){resolve(es);};
+});}
+var cur=null;
 
-function loadConfig(){
-  jget('/api/admin/config').then(function(j){
-    if(!j.ok){ $('saveMsg').textContent='读取配置失败：'+(j.message||''); return; }
-    var c=j.config;
-    $('p_provider').value=c.llm.primary.provider||'doubao';
-    $('p_base').value=c.llm.primary.base_url||'';
-    $('p_model').value=c.llm.primary.model||c.llm.primary.endpoint_id||'';
-    $('p_key').placeholder='已配置：'+(c.llm.primary.api_key||'（空）')+'（留空表示不修改）';
-    $('f_provider').value=c.llm.fallback.provider||'deepseek';
-    $('f_base').value=c.llm.fallback.base_url||'';
-    $('f_model').value=c.llm.fallback.model||'';
-    $('f_key').placeholder='已配置：'+(c.llm.fallback.api_key||'（空）')+'（留空表示不修改）';
-    $('v_model').value=c.vision.model||''; $('v_enabled').value=String(!!c.vision.enabled);
-    $('v_key').placeholder='已配置：'+(c.vision.api_key||'（空）')+'（留空表示不修改）';
-    $('a_provider').value=c.asr.provider||''; $('a_base').value=c.asr.base_url||'';
-    $('a_appid').value=c.asr.app_id||''; $('a_enabled').value=String(!!c.asr.enabled);
-    $('a_key').placeholder='已配置：'+(c.asr.api_key||'（空）')+'（留空表示不修改）';
-    $('t_provider').value=c.tts.provider||''; $('t_base').value=c.tts.base_url||'';
-    $('t_appid').value=c.tts.app_id||''; $('t_cluster').value=c.tts.cluster||'';
-    $('t_voice').value=c.tts.voice||''; $('t_enabled').value=String(!!c.tts.enabled);
-    $('t_key').placeholder='已配置：'+(c.tts.api_key||'（空）')+'（留空表示不修改）';
-    $('s_base').value=c.server.public_base_url||''; $('s_port').value=c.server.port||8000;
-    $('saveMsg').textContent='配置文件：'+j.config_path+'　（'+j.note+'）';
-  });
-}
+function send(){var t=$('input').value.trim();if(!t){return;}msg('u',t);$('input').value='';
+  var body=new URLSearchParams({sid:sid,text:t,stage:$('stageSel').value,mode:$('modeSel').value,sys_extra:$('sysExtra').value});
+  fetch('/api/chat',{method:'POST',body:body}).then(function(r){return r.json().then(function(j){if(!r.ok){var d=document.createElement('div');d.className='m err';d.textContent='错误：'+(j.error||r.status);$('chat').appendChild(d);}});}).catch(function(e){var d=document.createElement('div');d.className='m err';d.textContent='网络错误：'+e;$('chat').appendChild(d);});
+  ensureSSE();}
 
-function saveConfig(){
-  var patch={
-    llm:{primary:{provider:$('p_provider').value,base_url:$('p_base').value,model:$('p_model').value},
-         fallback:{provider:$('f_provider').value,base_url:$('f_base').value,model:$('f_model').value}},
-    vision:{model:$('v_model').value,enabled:$('v_enabled').value==='true'},
-    asr:{provider:$('a_provider').value,base_url:$('a_base').value,app_id:$('a_appid').value,enabled:$('a_enabled').value==='true'},
-    tts:{provider:$('t_provider').value,base_url:$('t_base').value,app_id:$('t_appid').value,
-         cluster:$('t_cluster').value,voice:$('t_voice').value,enabled:$('t_enabled').value==='true'},
-    server:{public_base_url:$('s_base').value}
-  };
-  if($('p_key').value) patch.llm.primary.api_key=$('p_key').value;
-  if($('f_key').value) patch.llm.fallback.api_key=$('f_key').value;
-  if($('v_key').value) patch.vision.api_key=$('v_key').value;
-  if($('a_key').value) patch.asr.api_key=$('a_key').value;
-  if($('t_key').value) patch.tts.api_key=$('t_key').value;
-  if($('s_port').value) patch.server.port=parseInt($('s_port').value,10)||8000;
-  jpost('/api/admin/config',{patch:patch}).then(function(r){
-    $('saveMsg').textContent=(r.body.ok?'已保存：':'保存失败：')+(r.body.message||r.body.error||'');
-    if(r.body.capabilities) renderCaps(r.body.capabilities);
-    loadConfig(); refreshNet();
-  });
-}
+$('sendBtn').onclick=send;
+$('input').addEventListener('keydown',function(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}});
+$('clearBtn').onclick=function(){fetch('/api/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sid:sid})}).then(function(){$('chat').innerHTML='';line('已清空会话');});};
 
-function refreshNet(){
-  jget('/api/admin/network').then(function(j){
-    if(!j.ok){ $('netInfo').textContent='读取失败：'+(j.message||''); return; }
-    var rec=j.recommended||{};
-    var html='<b>推荐扫码地址</b><br><code>'+(rec.url||'（无）')+'</code><br>';
-    html+='<b>本机局域网 IP</b>：'+j.primary_ip+'　<b>端口</b>：'+j.port+'<br>';
-    html+='<b>候选地址与连通检测</b><br>';
-    (j.candidates||[]).forEach(function(c){
-      var ok=c.check&&c.check.reachable;
-      html+='<span class="pill '+(ok?'ok':'no')+'">'+(ok?'可达':'不可达')+'</span>'+c.label+'：<code>'+c.url+'</code><br>';
-    });
-    html+='<div class="hint" style="margin-top:8px;">'+(j.notes||[]).join('<br>')+'</div>';
-    $('netInfo').innerHTML=html;
-    $('qr').src='/api/qrcode.png?scale=8&t='+Date.now();
+function loadCap(){fetch('/api/access-info').then(function(r){return r.json();}).then(function(d){
+  var list=$('capList');list.innerHTML='';
+  var items=[['主模型',d.llm],['图片识别',d.vision],['语音识别',d.asr],['语音合成',d.tts]];
+  items.forEach(function(it){var name=it[0],c=it[1];var div=document.createElement('div');div.className='cap-item';
+    var cls=c.configured?(c.enabled?'on':'off'):'off';var txt=c.configured?(c.enabled?'已配置':'未启用'):'未配置';
+    if(c.demo){cls='demo';txt='演示模式';}
+    div.innerHTML='<span class="k">'+name+'</span><span class="badge '+cls+'">'+txt+'</span>';list.appendChild(div);
+    if(c.configured&&c.vendor){var m=document.createElement('div');m.style.cssText='font-size:12px;color:var(--soft);grid-column:1/-1;padding:0 10px;';m.textContent='供应商：'+c.vendor+' · '+(c.model||'');list.appendChild(m);}
   });
-}
+  // QR URL
+  if(d.scan_url){$('qrUrl').textContent=d.scan_url;}
+}).catch(function(){$('capList').innerHTML='<div class="cap-item">无法加载</div>';});}
 
-function loadStages(){
-  jget('/api/knowledge/stages').then(function(j){
-    S.stages=j.stages||[];
-    var sel=$('stageSel'); sel.innerHTML='';
-    S.stages.forEach(function(s){
-      var o=document.createElement('option');o.value=s.id;o.textContent=s.order+'. '+s.name;sel.appendChild(o);
-    });
-    sel.addEventListener('change',function(){
-      var s=S.stages.filter(function(x){return x.id===sel.value;})[0];
-      S.stage=sel.value;
-      $('stageInfo').textContent=s?('环节目标：'+s.goal):'';
-      if(S.sid) jpost('/api/session/'+S.sid+'/stage',{stage_id:sel.value});
-      renderDemoQ(s);
-    });
-    if(S.stages.length){ sel.value=S.stages[0].id; sel.dispatchEvent(new Event('change')); }
-  });
-}
+$('checkBtn').onclick=function(){$('checkResult').innerHTML='';fetch('/api/network-check').then(function(r){return r.json();}).then(function(d){
+  (d.results||[]).forEach(function(r){var div=document.createElement('div');div.className='cap-item';div.innerHTML='<span class="k">'+r.label+'</span><span class="badge '+(r.reachable?'on':'off')+'">'+(r.reachable?('可达 '+r.status):'不可达')+'</span>';$('checkResult').appendChild(div);});
+}).catch(function(){$('checkResult').innerHTML='<div class="cap-item">自检失败</div>';});};
 
-function renderDemoQ(stage){
-  var box=$('demoQ'); box.innerHTML='';
-  var qs=[];
-  if(stage){
-    qs=[ '请给出本环节的完整讲解（教师模式）',
-         '请示范 3 条适合大班幼儿的提问',
-         '本环节幼儿常见误解是什么？怎么纠正？',
-         '本环节对应的资料依据是哪一页/哪个环节？' ];
-  }
-  qs.forEach(function(q){
-    var b=document.createElement('button');b.className='act ghost small';b.textContent=q;
-    b.addEventListener('click',function(){$('input').value=q;send();});
-    box.appendChild(b);
-  });
-}
+$('scanBtn').onclick=function(){window.open('/scan','_blank');};
+$('studentBtn').onclick=function(){window.open('/','_blank');};
 
-function send(){
-  var text=($('input').value||'').trim();
-  if(!text) return;
-  $('input').value='';
-  msg('u',text);
-  var node=msg('a','');
-  var acc='';
-  $('send').hidden=true; $('stop').hidden=false;
-  fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({session_id:S.sid,text:text,mode:$('modeSel').value,stage_id:S.stage})})
-  .then(function(resp){
-    if(!resp.ok||!resp.body) throw new Error('HTTP '+resp.status);
-    var rd=resp.body.getReader(),dec=new TextDecoder('utf-8'),buf='';
-    function pump(){return rd.read().then(function(r){
-      if(r.done)return;
-      buf+=dec.decode(r.value,{stream:true});
-      var i;
-      while((i=buf.indexOf('\n\n'))>=0){
-        var ch=buf.slice(0,i);buf=buf.slice(i+2);
-        ch.split('\n').forEach(function(l){
-          if(l.indexOf('data: ')!==0)return;
-          var ev;try{ev=JSON.parse(l.slice(6));}catch(e){return;}
-          if(ev.type==='delta'){acc+=ev.text;node.textContent=acc;$('chat').scrollTop=1e9;}
-          else if(ev.type==='meta'){
-            var c=ev.context||{};
-            line('上下文：保留 '+c.kept_turns+' 轮 / 共 '+c.total_turns+' 轮，估算 '+c.est_tokens+' tokens，预算 '+c.token_budget);
-            if(c.warning) line('提示：'+c.warning);
-          }
-          else if(ev.type==='model'){
-            line('模型：'+(ev.provider||'-')+' / '+(ev.model||'-')+'　真实AI='+(ev.is_real_ai?'是':'否')+(ev.note?('　'+ev.note):''));
-          }
-          else if(ev.type==='error'){ var d=msg('err','['+ev.code+'] '+(ev.message||'')); }
-          else if(ev.type==='done'){ line('完成：'+ev.chars+' 字，会话累计 '+ev.turns+' 轮'+(ev.stopped?'（已停止）':'')); }
-        });
-      }
-      return pump();
-    });}
-    return pump();
-  }).catch(function(e){ msg('err','请求失败：'+e.message); })
-  .then(function(){ $('send').hidden=false;$('stop').hidden=true; S.last=acc; });
-}
-
-function bind(){
-  $('send').addEventListener('click',send);
-  $('input').addEventListener('keydown',function(e){
-    if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}
-  });
-  $('stop').addEventListener('click',function(){
-    jpost('/api/chat/stop',{session_id:S.sid}).then(function(){ line('已请求停止生成'); });
-  });
-  $('clear').addEventListener('click',function(){
-    jpost('/api/session/'+S.sid+'/clear').then(function(){ $('chat').innerHTML=''; line('本会话已清空'); });
-  });
-  $('collapse').addEventListener('click',function(){
-    if(window.XiaoyinHost&&window.XiaoyinHost.collapse){ window.XiaoyinHost.collapse(); }
-    else { alert('在桌面悬浮窗中打开时，此按钮会收起对话框并回到悬浮入口。'); }
-  });
-  $('play').addEventListener('click',function(){
-    if(!S.last){ line('还没有可播放的回复'); return; }
-    fetch('/api/tts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:S.last})})
-      .then(function(r){ if(!r.ok) throw new Error('未配置语音合成'); return r.blob(); })
-      .then(function(b){ new Audio(URL.createObjectURL(b)).play(); })
-      .catch(function(e){
-        if(window.speechSynthesis){ var u=new SpeechSynthesisUtterance(S.last);u.lang='zh-CN';speechSynthesis.speak(u);line('已改用浏览器朗读（备选方案）：'+e.message); }
-        else line('播放失败：'+e.message);
-      });
-  });
-  $('stopPlay').addEventListener('click',function(){
-    if(window.speechSynthesis) speechSynthesis.cancel();
-    line('已停止播放');
-  });
-  $('saveCfg').addEventListener('click',saveConfig);
-  $('reloadCfg').addEventListener('click',function(){loadConfig();refreshNet();});
-  $('refreshNet').addEventListener('click',refreshNet);
-}
-
-function boot(){
-  bind();
-  jget('/api/health').then(function(h){
-    renderCaps(h.capabilities);
-    $('whoami').innerHTML='服务版本 '+h.version+'　已运行 '+h.uptime_seconds+' 秒　'+
-      '<span class="hint">管理接口仅本机可访问</span>';
-  });
-  jpost('/api/session',{mode:'teacher'}).then(function(r){
-    if(r.body.ok){ S.sid=r.body.session_id; line('教师会话已创建：'+S.sid); }
-    else { line('创建教师会话失败：'+(r.body.message||'')); }
-  });
-  loadStages(); loadConfig(); refreshNet();
-  line('提示：密钥不会通过接口返回明文；未配置时界面会明确显示「未配置」。');
-}
-boot();
+loadCap();ensureSSE().then(function(){line('教师端已连接，可开始对话');});
 </script>
 </body>
 </html>
