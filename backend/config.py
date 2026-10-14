@@ -139,6 +139,11 @@ def _env_override(cfg):
             for p in path[:-1]:
                 node = node.setdefault(p, {})
             node[path[-1]] = int(val) if (path[-1] == 'port' and str(val).isdigit()) else val
+    # 云端托管平台（Render 等）通过反向代理注入 X-Forwarded-*，
+    # 需信任代理头才能识别公网域名（让二维码/接入信息自动指向公网地址）。
+    _trust = os.environ.get('APP_TRUST_PROXY_HEADERS', '').lower() in ('1', 'true', 'yes')
+    if _trust or os.environ.get('RENDER') or os.environ.get('RENDER_SERVICE_ID'):
+        cfg['server']['trust_proxy_headers'] = True
     if os.environ.get('APP_DEMO_MODE', '').lower() in ('1', 'true', 'yes'):
         cfg['modes']['demo'] = True
     if os.environ.get('APP_CORS_ORIGINS'):
@@ -237,10 +242,10 @@ def capability_report(cfg):
                    'label': '图片分析已配置' if vision_ready else '图片分析未配置（需多模态模型，DeepSeek 文本模型不支持看图）',
                    'provider': vis.get('provider'), 'model': vis.get('model') or ''},
         'asr': {'state': 'configured' if asr_ready else 'unconfigured',
-                'label': '语音识别已配置' if asr_ready else '语音识别（ASR）未配置——语音对话链路不完整，可先用文字输入',
+                'label': '语音识别（ASR）未配置——语音对话链路不完整，可先用文字输入',
                 'provider': asr.get('provider') or '', 'model': asr.get('model') or ''},
         'tts': {'state': 'configured' if tts_ready else 'unconfigured',
-                'label': '语音合成已配置' if tts_ready else '语音合成（TTS）未配置——可先用浏览器朗读（备选，中文效果依赖系统语音）',
+                'label': '语音合成（TTS）未配置——可先用浏览器朗读（备选，中文效果依赖系统语音）',
                 'provider': tts.get('provider') or '', 'voice': tts.get('voice') or ''},
         'browser_speech_fallback': {
             'asr': '浏览器原生语音识别仅部分浏览器支持（Chrome/Edge 桌面与部分安卓），需 HTTPS 与用户首次授权；微信内置浏览器通常不支持，不作为通用方案。',
