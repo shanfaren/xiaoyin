@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: xiaoyin
+    runtime: python
+    plan: free
+    region: singapore
+    buildCommand: "echo no-build-pure-stdlib"
+    startCommand: "python -m backend.server"
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.4"
+      - key: ARK_API_KEY
+        sync: false
+      - key: ARK_MODEL
+        value: "doubao-seed-evolving"
+      - key: ARK_VISION_MODEL
+        value: "doubao-seed-evolving"
+      - key: TTS_API_KEY
+        sync: false
