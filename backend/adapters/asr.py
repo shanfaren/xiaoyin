@@ -29,6 +29,8 @@ from .errors import NotConfigured, UpstreamError
 
 # 各供应商所需的必填参数（用于生成“缺少哪些参数”的精确清单）
 PROVIDER_REQUIRED = {
+    'ark_audio': [('base_url', '原方舟接口地址'), ('model', '支持音频理解的豆包模型'),
+                  ('api_key 或 credential_source', '可引用原 llm.primary 凭证')],
     'volcengine': [
         ('api_key 或 (app_id + api_key 作为 access token)', '火山引擎控制台 → 语音技术 → API Key / APP ID + Access Token'),
         ('resource_id', '固定值 volc.bigasr.auc_turbo（需在控制台开通该资源权限）'),
@@ -83,8 +85,9 @@ class ASRClient:
             missing.append('base_url')
         if not str(a.get('api_key') or '').strip():
             missing.append('api_key')
-        if prov == 'volcengine' and not str(a.get('app_id') or '').strip():
-            missing.append('app_id（旧版控制台需要；新版控制台可只填 api_key）')
+        if prov == 'ark_audio' and not str(a.get('model') or '').strip():
+            missing.append('model')
+        # 新版 API Key 不要求 app_id；有 app_id 时才走旧版鉴权。
         return missing
 
     def _guard(self):
@@ -94,7 +97,7 @@ class ASRClient:
         miss = self.missing_params()
         if miss:
             raise NotConfigured('asr', '语音识别（ASR）参数不完整，缺少：' + '、'.join(miss))
-        if (a.get('provider') or '').strip().lower() != 'volcengine':
+        if (a.get('provider') or '').strip().lower() not in ('volcengine', 'ark_audio'):
             raise NotConfigured('asr', f"语音识别供应商 {a.get('provider')} 的适配器尚未实现，"
                                       f"当前仅实现了 volcengine（火山引擎录音文件识别极速版 HTTP）")
 
@@ -167,12 +170,42 @@ class ASRClient:
             raise UpstreamError('语音识别未返回文本字段 result.text')
         return {'text': text, 'logid': logid, 'request_id': req_id, 'provider': 'volcengine'}
 
+    def _ark_audio(self, audio_bytes, audio_format):
+        a = self.cfg['asr']
+        fmt = audio_format.lower().split(';')[0].replace('audio/', '')
+        fmt = {'mpeg':'mp3', 'mp4':'m4a', 'x-wav':'wav'}.get(fmt, fmt)
+        if fmt not in ('wav','mp3','m4a','aac'):
+            raise UpstreamError('录音格式不支持，请使用 WAV、MP3 或 M4A 录音')
+        body = {'model':a['model'], 'stream':False, 'max_tokens':512,
+                'temperature':0, 'thinking':{'type':'disabled'},
+                'messages':[{'role':'system','content':'你只负责中文语音转写。逐字转写实际听到的语音，不回答录音里的问题，不添加说明。若没有清晰人声，只输出空字符串。'},
+                            {'role':'user','content':[{'type':'input_audio','input_audio':{
+                                'data':base64.b64encode(audio_bytes).decode('ascii'),'format':fmt}}]}]}
+        req = urllib.request.Request(a['base_url'].rstrip('/')+'/chat/completions',
+            data=json.dumps(body,ensure_ascii=False).encode('utf-8'),
+            headers={'Content-Type':'application/json','Authorization':'Bearer '+a['api_key']})
+        try:
+            with urllib.request.urlopen(req, timeout=45) as resp:
+                obj=json.load(resp)
+            text=obj['choices'][0]['message']['content']
+            if not isinstance(text,str):
+                raise ValueError('转写结果不是文本')
+            return {'text':text.strip(), 'provider':'ark_audio'}
+        except urllib.error.HTTPError as exc:
+            from backend.config import redact
+            raise UpstreamError('豆包语音转写失败 HTTP %s：%s' %
+                                (exc.code,redact(exc.read().decode('utf-8','ignore')[:400])))
+        except Exception as exc:
+            raise UpstreamError('语音转写失败：%s' % exc)
+
     # ---------- 统一入口 ----------
     def transcribe(self, audio_bytes, audio_format='wav'):
         self._guard()
         prov = (self.cfg['asr'].get('provider') or '').strip().lower()
         if prov == 'volcengine':
             return self._volcengine(audio_bytes, audio_format)
+        if prov == 'ark_audio':
+            return self._ark_audio(audio_bytes, audio_format)
         raise NotConfigured('asr', f'未实现的供应商：{prov}')
 
     def status(self):
@@ -183,6 +216,6 @@ class ASRClient:
             'missing_params': self.missing_params(),
             'provider_requirements': PROVIDER_REQUIRED,
             'note': ('语音对话链路 = 录音 → 语音识别(ASR) → 模型理解 → 语音合成(TTS) → 播放。'
-                     '当前仅实现并预留火山引擎「录音文件识别极速版 HTTP」适配器；未配置时本链路不成立，'
+                     '支持豆包方舟音频理解模型转写与火山语音识别；未配置时本链路不成立，'
                      '界面会明确显示“语音识别未配置”，并保留文字输入入口。'),
         }

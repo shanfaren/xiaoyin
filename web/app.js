@@ -41,7 +41,7 @@
   var S = {
     cfg: null,
     sid: '',
-    stageId: 'intro',
+    stageId: 'qa',
     mode: 'student',
     voiceMode: false,      // 底部栏当前是语音还是文字
     recording: false,
@@ -51,7 +51,10 @@
     audioEl: null,
     speechRec: null,
     photo: null,           // {dataUrl, base64, mime, name, size}
-    abort: null
+    abort: null,
+    followupVersion: 0,
+    stopped: false,
+    audioSeq: 0, playbackAudio: null, audioURL:null, micStream: null, recordTimer: null, voiceVersion: 0
   };
 
   var $ = function (id) { return document.getElementById(id); };
@@ -85,7 +88,9 @@
   }
 
   function stopAudio() {
+    S.audioSeq++;
     if (S.audioEl) { try { S.audioEl.pause(); } catch (e) {} S.audioEl = null; }
+    if (S.audioURL) { URL.revokeObjectURL(S.audioURL); S.audioURL=null; }
     if (window.speechSynthesis) { try { window.speechSynthesis.cancel(); } catch (e) {} }
   }
 
@@ -115,6 +120,7 @@
         if (!j || !j.ok) return null;
         S.sid = j.session.session_id || j.session.id;
         S.stageId = j.session.stage_id || S.stageId;
+        renderStages((S.cfg && S.cfg.stages) || [], S.stageId);
         return j.session;
       });
   }
@@ -128,9 +134,11 @@
       if (m.role === 'user') {
         addMsg('u', m.content, m.kind === 'image' ? '照片' : '');
       } else {
-        addMsg('a', m.content);
+        var bubble = addMsg('a', m.content);
+        attachTools(bubble, m.content);
       }
     });
+    if (msgs[msgs.length - 1].role === 'assistant') loadFollowups();
   }
 
   /* ---------- 渲染 ---------- */
@@ -181,6 +189,7 @@
   }
 
   function renderStages(stages, currentId) {
+    currentId = ({intro:'qa',aichat1:'qa',aichat2:'share',extension:'share',level1:'hint',level2:'hint',level3:'hint',level4:'hint',level5:'hint'})[currentId] || currentId;
     var st = null;
     stages.forEach(function (s) { if (s.id === currentId) st = s; });
     if (!st) st = stages[0];
@@ -188,6 +197,12 @@
     S.stageId = st.id;
     $('taskTitle').textContent = st.name;
     $('taskGoal').textContent = st.goal;
+    $('interactionGoal').textContent = st.goal;
+    $('textInput').placeholder = st.placeholder || st.goal;
+    document.querySelectorAll('#interactionTabs button').forEach(function (button) {
+      button.setAttribute('aria-pressed', String(button.dataset.profile === st.id));
+    });
+    renderQuick(st.questions || []);
   }
 
   function renderQuick(qs) {
@@ -229,6 +244,7 @@
   function sendText(text) {
     text = (text || '').trim();
     if (!text || S.busy) return;
+    unlockPlayback();
     $('textInput').value = '';
     doChat({ text: text, input_kind: 'text' });
   }
@@ -240,10 +256,33 @@
     doVision(S.photo, q);
   }
 
+  function clearFollowups() {
+    S.followupVersion++;
+    document.querySelectorAll('.followups').forEach(function (box) { box.remove(); });
+  }
+
+  function loadFollowups() {
+    var version = ++S.followupVersion, selected = S.stageId, sid = S.sid;
+    fetch('/api/session/' + encodeURIComponent(sid) + '/suggestions', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({stage_id:selected})
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (!j.ok || !j.questions || !j.questions.length || version !== S.followupVersion || S.busy || sid !== S.sid || selected !== S.stageId) return;
+      var box = document.createElement('section'); box.className = 'followups';
+      var label = document.createElement('div'); label.className = 'quick-label'; label.textContent = '接下来还可以问'; box.appendChild(label);
+      j.questions.forEach(function (question) {
+        var button = document.createElement('button'); button.type='button'; button.className='chip'; button.textContent=question;
+        button.addEventListener('click', function () { sendText(question); }); box.appendChild(button);
+      });
+      $('chat').appendChild(box); scrollBottom();
+    }).catch(function () {});
+  }
+
   /* ---------- 对话主流程 ---------- */
   function doChat(payload) {
     if (!S.sid) { createSession().then(function () { doChat(payload); }); return; }
     stopAudio();
+    clearFollowups();
+    S.stopped = false;
     $('welcome').hidden = true;
     $('chat').hidden = false;
     addMsg('u', payload.text, payload.kind === 'image' ? '照片' : '');
@@ -302,6 +341,8 @@
         bubble.parentNode && bubble.parentNode.parentNode && bubble.parentNode.parentNode.removeChild(bubble.parentNode);
       } else {
         attachTools(bubble, acc);
+        if (!S.stopped) loadFollowups();
+        if (!S.stopped && S.cfg && S.cfg.voice && S.cfg.voice.auto_play) speak(acc);
       }
       scrollBottom();
     });
@@ -357,6 +398,8 @@
   /* ---------- 语音合成播放 ---------- */
   function speak(text, btn, ttsOk) {
     stopAudio();
+    var seq = S.audioSeq;
+    if (typeof ttsOk === 'undefined') ttsOk = !!(S.cfg && S.cfg.voice && S.cfg.voice.tts && S.cfg.voice.tts.state === 'configured');
     if (ttsOk) {
       setStatus('播放中…');
       setAvatarState('speaking');
@@ -368,12 +411,17 @@
         if (!r.ok) throw new Error('tts');
         return r.blob();
       }).then(function (blob) {
+        if (seq !== S.audioSeq) return;
         var url = URL.createObjectURL(blob);
-        var a = new Audio(url);
+        S.audioURL=url;
+        var a = S.playbackAudio || new Audio();
+        S.playbackAudio = a;
+        a.src = url; a.muted = false;
         S.audioEl = a;
-        a.onended = function () { setStatus(''); setAvatarState('idle'); };
+        a.onended = function () { URL.revokeObjectURL(url); setStatus(''); setAvatarState('idle'); };
         return a.play();
       }).catch(function () {
+        if (seq !== S.audioSeq) return;
         setStatus('');
         browserSpeak(text, btn);
       });
@@ -407,10 +455,12 @@
   function doVision(photo, question) {
     if (!S.sid) { createSession().then(function () { doVision(photo, question); }); return; }
     stopAudio();
+    clearFollowups();
     $('welcome').hidden = true;
     $('chat').hidden = false;
     addMsg('u', '（我拍了一张照片）' + (question ? ' ' + question : ''), '照片');
     var bubble = addMsg('a', '');
+    var voiceAnswer = '';
     S.busy = true;
     $('btnSend').hidden = true;
     $('btnStop').hidden = false;
@@ -422,12 +472,13 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         image_base64: photo.base64, mime: photo.mime,
-        question: question || '', session_id: S.sid
+        question: question || '', session_id: S.sid, stage_id: S.stageId
       })
     }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, status: r.status, body: j }; }); })
       .then(function (res) {
         var j = res.body || {};
         if (j.ok && j.text) {
+          voiceAnswer=j.text;
           bubble.textContent = j.text;
           attachTools(bubble, j.text);
         } else if (j.error === 'not_configured') {
@@ -448,6 +499,8 @@
         $('btnStop').hidden = true;
         setStatus('');
         clearPhoto();
+        if (bubble.textContent.trim()) loadFollowups();
+        if (voiceAnswer && S.cfg && S.cfg.voice && S.cfg.voice.auto_play) speak(voiceAnswer);
       });
   }
 
@@ -525,7 +578,50 @@
   }
 
   /* ---------- 录音与识别 ---------- */
+  function wavBlob(samples, rate) {
+    var bytes = new ArrayBuffer(44 + samples.length * 2), d = new DataView(bytes);
+    function str(offset, value) { for (var i=0;i<value.length;i++) d.setUint8(offset+i,value.charCodeAt(i)); }
+    str(0,'RIFF'); d.setUint32(4,36+samples.length*2,true); str(8,'WAVE'); str(12,'fmt ');
+    d.setUint32(16,16,true); d.setUint16(20,1,true); d.setUint16(22,1,true);
+    d.setUint32(24,rate,true); d.setUint32(28,rate*2,true); d.setUint16(32,2,true); d.setUint16(34,16,true);
+    str(36,'data'); d.setUint32(40,samples.length*2,true);
+    for(var i=0;i<samples.length;i++) { var value=Math.max(-1,Math.min(1,samples[i])); d.setInt16(44+i*2,value<0?value*32768:value*32767,true); }
+    return new Blob([bytes],{type:'audio/wav'});
+  }
+
+  function unlockPlayback() {
+    if (S.playbackAudio) return;
+    var a = new Audio(), url = URL.createObjectURL(wavBlob(new Float32Array(1600),16000));
+    S.playbackAudio=a; a.src=url; a.muted=true;
+    a.play().then(function () { if (a.src===url) { a.pause(); a.currentTime=0; a.muted=false; } URL.revokeObjectURL(url); }).catch(function () { a.muted=false; URL.revokeObjectURL(url); });
+  }
+
+  function normalizeAudio(blob) {
+    var mime=(blob.type||'').split(';')[0].toLowerCase(), name=(blob.name||'').toLowerCase();
+    var format = mime==='audio/mpeg'||/\.mp3$/.test(name)?'mp3':mime==='audio/mp4'||/\.m4a$/.test(name)?'m4a':mime==='audio/aac'?'aac':mime==='audio/wav'||/\.wav$/.test(name)?'wav':null;
+    if (blob.size>8*1024*1024) return Promise.reject(new Error('录音太大，请录一段短一点的语音。'));
+    if (format) return Promise.resolve({blob:blob,format:format});
+    var Context=window.AudioContext||window.webkitAudioContext;
+    if (!Context) return Promise.reject(new Error('无法读取这个录音格式，请选择MP3、M4A或WAV录音。'));
+    var context=new Context();
+    return blob.arrayBuffer().then(function (bytes) { return context.decodeAudioData(bytes); }).then(function (audio) {
+      context.close();
+      if(audio.duration>65) throw new Error('请把录音控制在一分钟以内。');
+      var offline=new OfflineAudioContext(1,Math.ceil(audio.duration*16000),16000), source=offline.createBufferSource();
+      source.buffer=audio; source.connect(offline.destination); source.start();
+      return offline.startRendering();
+    }).then(function (audio) { return {blob:wavBlob(audio.getChannelData(0),16000),format:'wav'}; });
+  }
+
   function startRecording() {
+    if (S.busy || S.recording) return;
+    stopAudio(); unlockPlayback();
+    if (!isSecure()) {
+      // 局域网HTTP不能直接访问网页麦克风，改由系统录音/选择录音提供音频。
+      $('audioFileInput').value=''; $('audioFileInput').click();
+      $('voiceHint').textContent='录好后返回这里，选择录音就能发送。';
+      return;
+    }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
       fallbackSpeechRecognition('这台设备的浏览器不支持录音。');
       return;
@@ -535,6 +631,7 @@
       return;
     }
     navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+      S.micStream = stream;
       S.chunks = [];
       var mr = new MediaRecorder(stream);
       S.mediaRecorder = mr;
@@ -546,6 +643,7 @@
       };
       mr.start();
       S.recording = true;
+      S.recordTimer=setTimeout(function () { if(S.recording) stopRecording(true); },60000);
       $('recLayer').hidden = false;
       setStatus('正在听…');
       setAvatarState('listening');
@@ -556,12 +654,13 @@
   }
 
   function stopRecording(send) {
+    if(S.recordTimer) clearTimeout(S.recordTimer);
     S.recording = false;
     $('recLayer').hidden = true;
     setStatus('');
     if (S.mediaRecorder && S.mediaRecorder.state !== 'inactive') {
       if (send === false) {
-        S.mediaRecorder.onstop = null;
+        S.mediaRecorder.onstop = function () { if(S.micStream) S.micStream.getTracks().forEach(function (t) {t.stop();}); S.micStream=null; };
         try { S.mediaRecorder.stop(); } catch (e) {}
       } else {
         S.mediaRecorder.stop();
@@ -571,21 +670,27 @@
   }
 
   function transcribe(blob) {
+    var version=++S.voiceVersion;
+    S.busy=true; $('btnStop').hidden=false;
     setStatus('识别中…');
     setAvatarState('listening');
+    normalizeAudio(blob).then(function (prepared) {
     var fr = new FileReader();
     fr.onload = function () {
       var b64 = String(fr.result).split(',')[1];
       fetch('/api/asr', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ audio_base64: b64, format: 'webm' })
+        body: JSON.stringify({ audio_base64: b64, format: prepared.format })
       }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, body: j }; }); })
         .then(function (res) {
+          if(version!==S.voiceVersion) return;
+          S.busy=false; $('btnStop').hidden=true;
           setStatus('');
           var j = res.body || {};
           if (j.ok && j.text) {
-            showAsrEdit(j.text);
+            if (S.cfg && S.cfg.voice && S.cfg.voice.auto_send) doChat({text:j.text,input_kind:'voice'});
+            else showAsrEdit(j.text);
           } else if (j.error === 'not_configured') {
             addNotice('语音识别还没有配置好，所以我还听不懂录音。你可以直接打字告诉我。');
             fallbackSpeechRecognition('要不要试试手机自带的语音输入？');
@@ -593,11 +698,14 @@
             addError('没有听清楚', (j.message || '') + ' 再说一次试试？');
           }
         }).catch(function () {
+          if(version!==S.voiceVersion) return;
+          S.busy=false; $('btnStop').hidden=true;
           setStatus('');
           addError('录音没有发出去', '网络不太好，请再试一次。');
         });
     };
-    fr.readAsDataURL(blob);
+    fr.readAsDataURL(prepared.blob);
+    }).catch(function (err) { if(version!==S.voiceVersion) return; S.busy=false; $('btnStop').hidden=true; setStatus(''); addNotice(err.message || '无法读取录音，请再录一次。'); });
   }
 
   function showAsrEdit(text) {
@@ -641,6 +749,47 @@
 
   /* ---------- 初始化 ---------- */
   function bind() {
+    function syncComposer() {
+      var canSend = !!$('textInput').value.trim() || !!S.photo;
+      $('btnSend').hidden = S.busy || !canSend;
+      $('btnMore').hidden = S.busy || canSend;
+      document.querySelectorAll('#interactionTabs button').forEach(function (button) {
+        button.disabled = S.busy;
+      });
+    }
+    document.querySelectorAll('#interactionTabs button').forEach(function (button) {
+      button.addEventListener('click', function () {
+        if (S.busy) return;
+        clearFollowups();
+        renderStages((S.cfg && S.cfg.stages) || [], button.dataset.profile);
+        if (S.sid) {
+          fetch('/api/session/' + encodeURIComponent(S.sid) + '/stage', {
+            method:'POST', headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({stage_id:S.stageId})
+          }).catch(function () {});
+        }
+      });
+    });
+    $('textInput').addEventListener('input', syncComposer);
+    new MutationObserver(syncComposer).observe($('btnStop'), {attributes:true, attributeFilter:['hidden']});
+    new MutationObserver(syncComposer).observe($('photoPreview'), {attributes:true, attributeFilter:['hidden']});
+    $('btnMore').addEventListener('click', function () {
+      var open = $('attachmentMenu').hidden;
+      $('attachmentMenu').hidden = !open;
+      $('btnMore').setAttribute('aria-expanded', String(open));
+    });
+    function closeMore() {
+      $('attachmentMenu').hidden = true;
+      $('btnMore').setAttribute('aria-expanded', 'false');
+    }
+    $('btnMenuPhoto').addEventListener('click', function () { closeMore(); pickPhoto(); });
+    $('btnMenuVoice').addEventListener('click', function () { closeMore(); startRecording(); });
+    $('btnMenuNew').addEventListener('click', function () { closeMore(); $('btnNew').click(); });
+    if (window.visualViewport) {
+      function fitKeyboard() { document.documentElement.style.setProperty('--chat-height', window.visualViewport.height + 'px'); }
+      window.visualViewport.addEventListener('resize', fitKeyboard);
+      fitKeyboard();
+    }
     var bi = $('brandAvatarImg'), hi = $('heroAvatarImg');
     if (bi) { bi.onerror = avatarFallback; }
     if (hi) { hi.onerror = avatarFallback; }
@@ -649,9 +798,15 @@
       if (S.photo) { sendPhoto(); } else { sendText($('textInput').value); }
     });
     $('textInput').addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') { e.preventDefault(); sendText($('textInput').value); }
+      if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) {
+        e.preventDefault();
+        if (S.photo) sendPhoto(); else sendText($('textInput').value);
+      }
     });
     $('btnStop').addEventListener('click', function () {
+      S.voiceVersion++;
+      S.stopped = true;
+      clearFollowups();
       if (S.abort) { try { S.abort.abort(); } catch (e) {} }
       if (S.sid) {
         fetch('/api/chat/stop', {
@@ -660,21 +815,20 @@
         }).catch(function () {});
       }
       stopAudio();
+      S.busy=false; $('btnStop').hidden=true;
       setStatus('');
     });
     $('btnPhoto').addEventListener('click', pickPhoto);
     $('fileInput').addEventListener('change', onFile);
+    $('audioFileInput').addEventListener('change', function () { var audio=this.files&&this.files[0]; if(audio) transcribe(audio); });
     $('btnPhotoDelete').addEventListener('click', clearPhoto);
     $('btnPhotoReplace').addEventListener('click', pickPhoto);
     $('btnPhotoReplace').setAttribute('type', 'button');
     $('btnPhotoDelete').setAttribute('type', 'button');
 
     $('btnModeToggle').addEventListener('click', function () {
-      S.voiceMode = !S.voiceMode;
-      $('modeIcon').textContent = S.voiceMode ? '🎤' : '⌨';
-      $('modeLabel').textContent = S.voiceMode ? '语音' : '文字';
-      $('textInput').placeholder = S.voiceMode ? '点右边的按钮开始说话…' : '说说你发现了什么…';
-      if (S.voiceMode) startRecording();
+      S.voiceMode = true;
+      startRecording();
     });
 
     $('btnVoiceBig').addEventListener('click', function () {
@@ -697,6 +851,8 @@
     });
 
     $('btnNew').addEventListener('click', function () {
+      if (S.busy) return;
+      clearFollowups();
       if (S.sid) {
         fetch('/api/session/' + encodeURIComponent(S.sid) + '/clear', { method: 'POST' })
           .catch(function () {});
@@ -717,7 +873,6 @@
       $('brandSub').textContent = '自然探究 AI 伙伴 · ' + cfg.course.stage_grade + cfg.course.subject;
       $('welcomeText').textContent = cfg.character.welcome;
       renderStages(cfg.stages || [], S.stageId);
-      renderQuick(cfg.quick_questions || []);
       renderVoiceCapability();
       var saved = null;
       try { saved = localStorage.getItem('xiaoyin_sid'); } catch (e) {}

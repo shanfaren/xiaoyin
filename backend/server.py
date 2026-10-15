@@ -59,6 +59,8 @@ from backend.adapters.llm import LLMClient, summarize  # noqa: E402
 from backend.adapters.tts import TTSClient      # noqa: E402
 from backend.adapters.vision import VisionClient  # noqa: E402
 from backend.knowledge import demo_responder, prompts  # noqa: E402
+from backend.knowledge import interactions
+from backend.knowledge import followups
 from backend.session import RateLimiter, SessionStore  # noqa: E402
 
 VERSION = '1.0.0'
@@ -76,6 +78,7 @@ class AppState:
         self.cancels = {}
         self.cancel_lock = threading.RLock()
         self.started_at = time.time()
+        self.suggestion_cache = {}
         self._build_clients()
 
     def _build_clients(self):
@@ -307,9 +310,9 @@ class Handler(BaseHTTPRequestHandler):
             mode = body.get('mode') or 'student'
             if mode not in ('student', 'teacher'):
                 raise ValueError('mode 只能为 student 或 teacher')
+            selected = interactions.resolve_id(body.get('stage_id'))
             s = STATE.store.create(mode)
-            if body.get('stage_id'):
-                s.stage_id = body['stage_id']
+            s.stage_id = selected
             STATE.store.persist(s)
             return self._send_json({'ok': True, 'session_id': s.id, 'mode': s.mode,
                                     'session': s.to_dict()})
@@ -324,9 +327,11 @@ class Handler(BaseHTTPRequestHandler):
                 return self._send_json({'ok': True, 'message': '本会话已清空', 'session': s.to_dict()})
             if len(parts) == 2 and parts[1] == 'stage':
                 body = self._read_json()
-                s.stage_id = body.get('stage_id')
+                s.stage_id = interactions.resolve_id(body.get('stage_id'))
                 STATE.store.persist(s)
                 return self._send_json({'ok': True, 'stage_id': s.stage_id})
+            if len(parts) == 2 and parts[1] == 'suggestions':
+                return self._suggestions(s)
         if path == '/api/chat':
             return self._chat()
         if path == '/api/chat/stop':
@@ -343,6 +348,35 @@ class Handler(BaseHTTPRequestHandler):
         if path == '/api/admin/config':
             return self._admin(self._update_config)
         return self._send_json({'ok': False, 'error': 'not_found', 'path': path}, 404)
+
+    def _suggestions(self, session):
+        body = self._read_json()
+        selected = interactions.resolve_id(body.get('stage_id') or session.stage_id)
+        with session.lock:
+            latest = session.messages[-2:]
+            if len(latest) != 2 or latest[0]['role'] != 'user' or latest[1]['role'] != 'assistant':
+                return self._send_json({'ok': True, 'questions': []})
+            question, answer = latest[0]['content'], latest[1]['content']
+            turn = latest[1]['turn']
+        key = (session.id, selected, question, answer)
+        cached = STATE.suggestion_cache.get(key)
+        if cached is not None:
+            return self._send_json({'ok': True, 'questions': cached, 'stage_id': selected, 'turn': turn})
+        allowed, _ = STATE.limiter.allow('suggestions:' + session.id, 20)
+        if not allowed:
+            return self._send_json({'ok': False, 'questions': [], 'error': 'rate_limited'}, 429)
+        if not STATE.llm.is_ready() or STATE.llm.is_demo():
+            return self._send_json({'ok': True, 'questions': [], 'note': '推荐问题需要真实模型'})
+        try:
+            stream, _ = STATE.llm.generate(followups.messages_for(selected, question, answer))
+            items = followups.parse_questions(''.join(stream), question)
+            if len(STATE.suggestion_cache) >= 128:
+                STATE.suggestion_cache.pop(next(iter(STATE.suggestion_cache)), None)
+            STATE.suggestion_cache[key] = items
+            return self._send_json({'ok': True, 'questions': items, 'stage_id': selected, 'turn': turn})
+        except Exception as exc:
+            return self._send_json({'ok': False, 'questions': [], 'error': 'suggestions_unavailable',
+                                    'message': cfgmod.redact(str(exc))}, 502)
 
     def _admin(self, fn):
         if not self._admin_allowed():
@@ -391,6 +425,8 @@ class Handler(BaseHTTPRequestHandler):
                 'chain': ['录音', '语音识别(ASR)', '模型理解', '语音合成(TTS)', '播放'],
                 'chain_complete': cap['asr']['state'] == 'configured' and cap['llm']['state'] == 'configured',
                 'text_only_fallback': True,
+                'auto_send': True,
+                'auto_play': True,
             },
             'vision': cap['vision'],
             'lan_hint': {'primary_ip': ip, 'port': cfg['server']['port'],
@@ -604,8 +640,7 @@ class Handler(BaseHTTPRequestHandler):
                             'message': '当前使用人数较多，请稍后再试'})
             return self._sse_end()
 
-        if body.get('stage_id'):
-            s.stage_id = body['stage_id']
+        s.stage_id = interactions.resolve_id(body.get('stage_id') or s.stage_id)
 
         # 上下文（保证最近 ≥min_keep_turns 轮完整进入模型）
         def _summarizer(old_text):
@@ -628,7 +663,8 @@ class Handler(BaseHTTPRequestHandler):
 
         self._sse_start()
         self._sse_send({'type': 'meta', 'context': ctx_meta, 'mode': mode,
-                        'stage_id': s.stage_id, 'truncated_input': truncated,
+                        'stage_id': s.stage_id, 'interaction_name': interactions.profile(s.stage_id)['name'],
+                        'truncated_input': truncated,
                         'context_message_count': len(messages)})
         if ctx_meta.get('warning'):
             self._sse_send({'type': 'notice', 'message': ctx_meta['warning']})
@@ -711,6 +747,11 @@ class Handler(BaseHTTPRequestHandler):
         mime = body.get('mime') or 'image/jpeg'
         question = body.get('question')
         sid = body.get('session_id')
+        vision_session = STATE.store.get(sid) if sid else None
+        interaction_id = interactions.resolve_id(body.get('stage_id') or
+                                                 (vision_session.stage_id if vision_session else None))
+        if vision_session:
+            vision_session.stage_id = interaction_id
         if not img_b64:
             return self._send_json({'ok': False, 'error': 'no_image', 'message': '未收到图片数据'}, 400)
         import base64
@@ -725,7 +766,7 @@ class Handler(BaseHTTPRequestHandler):
         # 原图不落盘：仅在内存中处理
         try:
             text = STATE.vision.analyze(raw, mime, question=question,
-                                       stage_id=(STATE.store.get(sid).stage_id if sid and STATE.store.get(sid) else None))
+                                       stage_id=interaction_id)
         except NotConfigured as e:
             return self._send_json({'ok': False, 'error': 'not_configured', 'capability': 'vision',
                                     'message': str(e.message),
@@ -737,7 +778,7 @@ class Handler(BaseHTTPRequestHandler):
         s = STATE.store.get(sid) if sid else None
         if s:
             label = f'照片#{len(s.image_refs) + 1}'
-            s.add('user', f'[小朋友上传了{label}，系统对照片的观察记录如下]\n{text}',
+            s.add('user', f'[小朋友上传了{label}]\n附带问题：{question or "请看看这张照片"}',
                   kind='image', image_ref={'label': label, 'ts': time.time(),
                                            'description': text[:200]})
             s.add('assistant', text)

@@ -62,9 +62,10 @@ DEFAULTS = {
         "enabled": False
     },
     "asr": {
-        "provider": "",
-        "base_url": "",
-        "model": "",
+        "provider": "ark_audio",
+        "base_url": "https://ark.cn-beijing.volces.com/api/plan/v3",
+        "model": "doubao-seed-2-1-lite-260915",
+        "credential_source": "llm.primary",
         "api_key": "",
         "api_key_env": "ASR_API_KEY",
         "app_id": "",
@@ -128,6 +129,10 @@ def _env_override(cfg):
         ('llm', 'fallback', 'model'): 'DEEPSEEK_MODEL',
         ('vision', 'api_key'): 'ARK_API_KEY',
         ('vision', 'model'): 'ARK_VISION_MODEL',
+        ('asr', 'provider'): 'ASR_PROVIDER',
+        ('asr', 'base_url'): 'ASR_BASE_URL',
+        ('asr', 'model'): 'ASR_MODEL',
+        ('asr', 'credential_source'): 'ASR_CREDENTIAL_SOURCE',
         ('asr', 'api_key'): 'ASR_API_KEY',
         ('asr', 'app_id'): 'ASR_APP_ID',
         ('tts', 'api_key'): 'TTS_API_KEY',
@@ -159,6 +164,10 @@ def _env_override(cfg):
             and str(tts.get('voice') or '').strip() and str(tts.get('base_url') or '').strip()):
         tts['enabled'] = True
     asr = cfg['asr']
+    if asr.get('credential_source') == 'llm.primary' and not str(asr.get('api_key') or '').strip():
+        asr['api_key'] = cfg['llm']['primary'].get('api_key', '')
+        if not asr.get('base_url'):
+            asr['base_url'] = cfg['llm']['primary'].get('base_url', '')
     if str(asr.get('api_key') or '').strip() and str(asr.get('base_url') or '').strip():
         asr['enabled'] = True
     return cfg

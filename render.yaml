@@ -19,3 +19,9 @@ services:
         value: "doubao-seed-evolving"
       - key: TTS_API_KEY
         sync: false
+      - key: ASR_PROVIDER
+        value: "ark_audio"
+      - key: ASR_MODEL
+        value: "doubao-seed-2-1-lite-260915"
+      - key: ASR_CREDENTIAL_SOURCE
+        value: "llm.primary"

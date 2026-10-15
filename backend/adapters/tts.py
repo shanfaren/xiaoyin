@@ -8,7 +8,6 @@
 - volcengine：火山引擎语音合成（POST /api/v1/tts，Authorization: Bearer;<access_token>，
   body 含 app.appid / app.token / app.cluster / user.uid / audio.voice_type / request.text）。
   **注意**：cluster 与 voice_type 的具体取值必须由用户在控制台确认后填入；本适配器不做猜测。
-- volcengine_seedtts：大模型语音合成2.0（POST /api/v3/tts/unidirectional，X-Api-Key + X-Api-Resource-Id）。
 - openai_compatible：POST {base_url}/audio/speech，body {model, input, voice, response_format}，返回二进制音频。
 
 未实现的供应商（aliyun / tencent / xfyun）会返回 NotConfigured 并列出所需参数，避免伪成功。
