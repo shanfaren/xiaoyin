@@ -1,4 +1,4 @@
-/* 三年小博士 · 学生端逻辑
+/* 森林小博士 · 学生端逻辑
    交互约束：不出现 API/开发术语；每次反馈简短适龄；区分文字/语音/照片三种输入，
    三者共享同一会话上下文；语音链路 = 录音 → ASR → 模型 → TTS → 播放。 */
 
@@ -7,7 +7,7 @@
 
   /* ---------- 角色头像（内联 SVG，离线可用；资产文件见 /assets/avatar/） ---------- */
   var AVATAR_SVG = ''
-    + '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="三年小博士">'
+    + '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="森林小博士">'
     + '<defs>'
     + '<radialGradient id="xg1" cx="50%" cy="32%" r="72%">'
     + '<stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#EFE6D2"/></radialGradient>'
