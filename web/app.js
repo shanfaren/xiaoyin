@@ -164,7 +164,7 @@
   }
 
   function renderStages(stages, currentId) {
-    currentId = ({intro:'qa',aichat1:'qa',aichat2:'share',extension:'share',level1:'hint',level2:'hint',level3:'hint',level4:'hint',level5:'hint'})[currentId] || currentId;
+    currentId = ({share:'qa',intro:'qa',aichat1:'qa',aichat2:'qa',extension:'qa',level1:'hint',level2:'hint',level3:'hint',level4:'hint',level5:'hint'})[currentId] || currentId;
     var st = null;
     stages.forEach(function (s) { if (s.id === currentId) st = s; });
     if (!st) st = stages[0];
@@ -183,7 +183,7 @@
   function renderQuick(qs) {
     var box = $('quickList');
     box.innerHTML = '';
-    qs.forEach(function (q) {
+    qs.slice(0,2).forEach(function (q) {
       var b = document.createElement('button');
       b.className = 'chip';
       b.type = 'button';
@@ -573,25 +573,38 @@
 
   function startRecording() {
     if (S.busy || S.recording || S.micPending) return false;
-    stopAudio(); unlockPlayback();
+    stopAudio(); try{unlockPlayback();}catch(ignore){}
     if (!isSecure()) {
       // 局域网HTTP不能直接访问网页麦克风，改由系统录音/选择录音提供音频。
       $('audioFileInput').value=''; $('audioFileInput').click();
       $('voiceHint').textContent='录好后返回这里，选择录音就能发送。';
       return;
     }
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
-      fallbackSpeechRecognition('这台设备的浏览器不支持录音。');
-      return;
+    var requestMic;
+    if(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia){
+      requestMic=function(){return navigator.mediaDevices.getUserMedia({audio:true});};
+    }else{
+      var legacy=navigator.getUserMedia||navigator.webkitGetUserMedia||navigator.mozGetUserMedia;
+      if(legacy)requestMic=function(){return new Promise(function(resolve,reject){legacy.call(navigator,{audio:true},resolve,reject);});};
+    }
+    if(!requestMic){
+      addNotice('当前内置浏览器没有开放麦克风录音。请从右上角菜单选择“在浏览器打开”；也可以选择系统录音文件发送。');
+      $('audioFileInput').value='';$('audioFileInput').click();return false;
     }
     if (!isSecure()) {
       addNotice('录音需要 https 安全地址。当前不是 https，可能无法录音，请先用文字输入，或让老师用 https 地址打开。');
       return;
     }
     S.micPending = true;
+    setStatus('正在开启麦克风，请允许录音权限…');
+    $('recTranscript').textContent='正在开启麦克风，请允许录音权限…';
+    $('recLayer').hidden=false;
     var intent=++S.recordIntent;
-    navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
-      if(intent!==S.recordIntent){stream.getTracks().forEach(function(t){t.stop();});S.micPending=false;return;}
+    requestMic().then(function (stream) {
+      if(intent!==S.recordIntent){
+        stream.getTracks().forEach(function(t){t.stop();});S.micPending=false;
+        addNotice('麦克风已准备好，请重新按住“按住说话”，说完松开。');return;
+      }
       S.micPending = false;
       S.micStream = stream;
       var chunks = [];
@@ -599,8 +612,12 @@
       S.liveRecorder=window.ForestLiveTranscription&&window.ForestLiveTranscription.create(stream,function(text){
         if(S.recording){$('recTranscript').textContent=text;window.dispatchEvent(new CustomEvent('forest:transcript',{detail:{text:text}}));}
       });
-      var mr = new MediaRecorder(stream);
+      var mr=null;
+      if(window.MediaRecorder){try{mr=new MediaRecorder(stream);}catch(ignore){}}
+      if(!mr&&!S.liveRecorder)throw new Error('recording_unsupported');
+      S.pcmOnly=!mr;
       S.mediaRecorder = mr;
+      if(mr){
       mr.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
       mr.onstop = function () {
         if(S.liveRecorder){S.liveRecorder.stop();S.liveRecorder=null;}
@@ -612,6 +629,7 @@
         transcribe(blob);
       };
       mr.start(250);
+      }
       S.recording = true;
       S.recordTimer=setTimeout(function () { if(S.recording) stopRecording(true); },60000);
       $('recLayer').hidden = false;
@@ -622,17 +640,30 @@
       if(S.micStream){S.micStream.getTracks().forEach(function(t){t.stop();});S.micStream=null;}
       S.micPending = false;
       $('recLayer').hidden = true;
-      addNotice('没有拿到麦克风权限。请在浏览器里允许使用麦克风，或者直接用文字输入。');
+      setStatus('');
+      if(err.name==='NotReadableError')addNotice('麦克风正被其他应用占用，请结束其他录音后再按住说话。');
+      else if(err.message==='recording_unsupported')addNotice('当前浏览器无法录音，请从右上角菜单选择“在浏览器打开”后使用语音。');
+      else addNotice('没有获得麦克风权限，请在微信或浏览器权限设置中允许录音，再按住说话。');
     });
   }
 
   function stopRecording(send) {
     S.recordIntent++;
-    if(S.liveRecorder){S.liveRecorder.stop();S.liveRecorder=null;}
+    var liveBlob=null;
+    if(S.liveRecorder){liveBlob=S.liveRecorder.stop();S.liveRecorder=null;}
     if(S.recordTimer) clearTimeout(S.recordTimer);
     S.recording = false;
     $('recLayer').hidden = true;
     setStatus('');
+    if(S.pcmOnly){
+      S.pcmOnly=false;S.micPending=false;
+      if(S.micStream)S.micStream.getTracks().forEach(function(t){t.stop();});S.micStream=null;
+      if(send!==false){
+        if(liveBlob&&liveBlob.size>11244)transcribe(liveBlob);
+        else addNotice('录音太短，请按住按钮说完一句话后再松开。');
+      }
+      return;
+    }
     if (S.speechRec) {
       var speech = S.speechRec;
       if (send === false) { speech.onresult=null; speech.onend=null; speech.abort(); S.speechRec=null; S.micPending=false; setAvatarState('idle'); }
@@ -753,6 +784,12 @@
 
   /* ---------- 初始化 ---------- */
   function bind() {
+    ['selectstart','contextmenu','dragstart'].forEach(function(name){
+      document.addEventListener(name,function(e){
+        var target=e.target;
+        if(target&&target.closest&&target.closest('button,[role="button"]'))e.preventDefault();
+      },true);
+    });
     function syncComposer() {
       var canSend = !!$('textInput').value.trim() || !!S.photo;
       $('btnSend').hidden = S.busy || !canSend;

@@ -1,17 +1,22 @@
 const assert=require('assert'),fs=require('fs'),vm=require('vm');
-let now=1000,started=0,finishes=[],listeners={},captured;
+let now=1000,started=0,finishes=[],listeners={},globalListeners={},captured;
 const button={disabled:false,classList:{add(){},remove(){}},setPointerCapture(n){captured=n;},
   addEventListener(n,fn){listeners[n]=fn;}};
-const root={addEventListener(){}};
+const root={addEventListener(name,fn){globalListeners[name]=fn;}};
 vm.runInNewContext(fs.readFileSync('web/hold-to-talk.js','utf8'),{window:root,Date:{now:()=>now}});
 root.bindForestHold(button,()=>{started++;},cancel=>finishes.push(cancel));
 const event={pointerId:1,button:0,preventDefault(){}};
 listeners.pointerdown(event);assert.equal(started,1);assert.equal(captured,1);
 now+=1000;listeners.pointerup(event);assert.deepEqual(finishes,[false]);
-listeners.lostpointercapture(event);assert.equal(finishes.length,1);
+globalListeners.pointerup(event);assert.equal(finishes.length,1);
 listeners.pointerdown(event);now+=100;listeners.pointerup(event);assert.equal(finishes[1],true);
 listeners.pointerdown(event);now+=1000;listeners.pointercancel(event);assert.equal(finishes[2],true);
-console.log('PASS hold to start, release to finish, short-touch and cancelled-pointer handling');
+button.setPointerCapture=()=>{throw new Error('capture unsupported');};
+listeners.pointerdown(event);now+=1000;globalListeners.pointerup(event);assert.equal(started,4);assert.equal(finishes[3],false);
+listeners.pointerdown({...event,pointerType:'touch'});assert.equal(started,4);
+listeners.touchstart({preventDefault(){}});assert.equal(started,5);now+=1000;
+globalListeners.touchend({preventDefault(){}});assert.equal(finishes[4],false);
+console.log('PASS pointer, touch-only, capture failure, release outside, duplicate release and cancellation');
 let processAudio,tick,fetches=0,texts=[],releaseResolve;
 const contextNode={connect(){},disconnect(){}};
 class AudioContext {

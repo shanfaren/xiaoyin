@@ -22,6 +22,7 @@
 }
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+button,[role="button"],button *{user-select:none!important;-webkit-user-select:none!important;-moz-user-select:none!important;-ms-user-select:none!important;-webkit-touch-callout:none!important;}
 /* 关键：本页多处元素同时使用 hidden 属性与 display:flex/grid 规则，
    作者样式会覆盖 UA 的 [hidden]{display:none}，导致浮层/预览/状态栏默认全部显示。
    此处显式兜底，保证 hidden 一定生效。 */

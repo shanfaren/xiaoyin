@@ -10,7 +10,7 @@ from bubble_transcript import BubbleTranscript
 
 ID_PIN = 2101
 ID_MORE = 2102
-PROFILE_IDS = ('qa', 'hint', 'share')
+PROFILE_IDS = ('qa', 'hint')
 
 
 class PAINTSTRUCT(ctypes.Structure):
@@ -122,8 +122,8 @@ class ChatPanel(T.TeacherDialog):
         self.h_pin = self._button('置顶', 56, 15, 48, ID_PIN)
         self._button('···', 406, 15, 36, ID_MORE)
         self.h_play = self._button('朗读', 346, 15, 52, T.ID_PLAY)
-        for i, label in enumerate(('提问答疑', '探究提示', '收获分享')):
-            self.profile_buttons.append(self._button(label, 28+i*138, 77, 128, 2201+i))
+        for i, label in enumerate(('提问答疑', '探究提示')):
+            self.profile_buttons.append(self._button(label, 28+i*208, 77, 196, 2201+i))
         self.h_transcript = mk('EDIT', '', W.ES_MULTILINE | W.ES_READONLY |
                               W.ES_AUTOVSCROLL,
                               28, 126, 404, 358, T.ID_TRANSCRIPT, 'text')
@@ -203,7 +203,7 @@ class ChatPanel(T.TeacherDialog):
         text = self._get_text(item.hwnd)
         selected = bool(item.state & 1)
         active = (cid == T.ID_SEND or (cid == ID_PIN and self.pinned) or
-                  (2201 <= cid <= 2203 and PROFILE_IDS[cid-2201] == self.stage_id))
+                  (2201 <= cid <= 2202 and PROFILE_IDS[cid-2201] == self.stage_id))
         color = (231, 241, 231) if active else (249, 241, 229)
         if selected:
             color = (221, 232, 225)
@@ -421,7 +421,7 @@ class ChatPanel(T.TeacherDialog):
                     W.user32.SetWindowTextW(self.h_input, self.suggested_questions[index])
                     self._on_send()
                 return 0
-            if 2201 <= cid <= 2203:
+            if 2201 <= cid <= 2202:
                 if not self._busy:
                     self._hide_suggestions()
                     self.stage_id = PROFILE_IDS[cid-2201]

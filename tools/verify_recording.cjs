@@ -1,7 +1,7 @@
 // Browser recording regression tests with fake devices; no microphone or UI access.
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const nodes=new Map(),uploads=[];
-const node=id=>{if(!nodes.has(id))nodes.set(id,{hidden:true,dataset:{},parentElement:{dataset:{}},focus(){}});return nodes.get(id);};
+const node=id=>{if(!nodes.has(id))nodes.set(id,{hidden:true,dataset:{},parentElement:{dataset:{}},focus(){},appendChild(){},click(){},scrollTo(){}});return nodes.get(id);};
 class Recorder {
   constructor(){this.state='inactive';this.mimeType='audio/webm';Recorder.last=this;Recorder.count++;}
   start(interval){this.interval=interval;this.state='recording';}
@@ -20,6 +20,7 @@ let source=fs.readFileSync('web/app.js','utf8');
 source=source.replace("  if (document.readyState === 'loading')",`
   unlockPlayback=function(){};
   transcribe=function(blob){window.uploads.push(blob);};
+  addNotice=function(text){window.lastNotice=text;};
   window.testVoice={S:S,start:startRecording,stop:stopRecording,fallback:fallbackSpeechRecognition};
   if (document.readyState === 'loading')`);
 context.window.uploads=uploads;vm.runInNewContext(source,context);
@@ -42,6 +43,14 @@ const voice=context.window.testVoice;
   permit({getTracks:()=>[{stop(){stopped++;}}]});await Promise.resolve();
   assert.equal(Recorder.count,2,'release before permission must not start a later recording');
   assert.equal(stopped,1);
+  assert(context.window.lastNotice.includes('麦克风已准备好'));
+  context.navigator.mediaDevices.getUserMedia=()=>Promise.resolve({getTracks:()=>[{stop(){}}]});
+  delete context.window.MediaRecorder;
+  context.window.ForestLiveTranscription={create:()=>({stop:()=>new Blob([new Uint8Array(32044)],{type:'audio/wav'})})};
+  voice.start();await Promise.resolve();assert.equal(voice.S.pcmOnly,true);
+  voice.stop(true);assert.equal(uploads.length,2);assert.equal(uploads[1].type,'audio/wav');
+  delete context.navigator.mediaDevices;context.navigator.webkitGetUserMedia=(options,resolve)=>resolve({getTracks:()=>[{stop(){}}]});
+  voice.start();await Promise.resolve();assert.equal(voice.S.recording,true);voice.stop(false);
   voice.fallback('');
   const rec=voice.S.speechRec;
   assert.equal(rec.continuous,true);
