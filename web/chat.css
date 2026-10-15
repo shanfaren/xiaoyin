@@ -5,8 +5,9 @@
 .interaction-tabs button:focus-visible { outline:2px solid #748e82; outline-offset:2px; }
 .interaction-tabs button:disabled { opacity:.6; cursor:wait; }
 .interaction-goal { flex:none; margin:8px 24px 0; color:#7e8681; font-size:12px; line-height:1.5; }
-.followups { display:flex; flex-direction:column; align-items:flex-start; gap:8px; padding:8px 0 12px 38px; }
-.followups .chip { font-size:14px; font-weight:400; }
+.followups { display:flex; flex-direction:column; align-items:flex-start; gap:4px; padding:4px 0 6px 38px; }
+.chat-surface .followups .chip { font-size:12px; line-height:1.4; font-weight:400; padding:5px 9px; border-radius:6px; }
+.chat-surface .followups .quick-label { font-size:11px; line-height:1.4; }
 .chat-surface { background:#fffaf3; color:#252a25; --ink:#252a25; --ink-soft:#77797e; --forest-900:#252a25; --forest-700:#43594a; --leaf-200:#e9e4db; --cream:#fff6e9; --shadow-sm:none; }
 .chat-surface .app { max-width:860px; height:100dvh; height:var(--chat-height,100dvh); padding-bottom:max(10px,env(safe-area-inset-bottom)); }
 .chat-surface .topbar { background:#fffaf3; border:0; padding:calc(14px + env(safe-area-inset-top,0px)) 22px 12px; }

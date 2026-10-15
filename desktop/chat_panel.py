@@ -69,6 +69,7 @@ class ChatPanel(T.TeacherDialog):
         left, top, right, bottom = W.get_work_area()
         self.scale = min(self.scale, (right-left-24)/460, (bottom-top-24)/660)
         self._init_fonts()
+        self._fonts['suggestion'] = W.make_font(self.s(12))
         self._fonts['title'] = W.make_font(self.s(17), bold=True)
         wc = W.WNDCLASSEXW()
         wc.cbSize = ctypes.sizeof(wc)
@@ -129,10 +130,10 @@ class ChatPanel(T.TeacherDialog):
         W.user32.ShowWindow(self.h_transcript, W.SW_HIDE)
         self.chat_view = BubbleTranscript(self.hwnd,self.scale,self._fonts['text'],self._fonts['small'])
         self.chat_view.create(28,126,404,358)
-        self.h_reco_label = mk('STATIC','接下来还可以问',W.SS_NOPREFIX,28,386,300,15,0,'small')
+        self.h_reco_label = mk('STATIC','接下来还可以问',W.SS_NOPREFIX,28,420,300,14,0,'suggestion')
         W.user32.ShowWindow(self.h_reco_label,W.SW_HIDE)
-        for i in range(3):
-            button = self._button('', 28, 402+i*32, 404, 2301+i, 28)
+        for i in range(2):
+            button = self._button('', 28, 436+i*26, 404, 2301+i, 22)
             self.suggestion_buttons.append(button)
             W.user32.ShowWindow(button, W.SW_HIDE)
         self.h_input = mk('EDIT', '', W.ES_MULTILINE | W.ES_AUTOVSCROLL |
@@ -211,13 +212,14 @@ class ChatPanel(T.TeacherDialog):
         W.user32.FillRect(item.hdc, ctypes.byref(r), self._brushes['bg'])
         self._round(item.hdc, (r.left+1, r.top+1, r.right-1, r.bottom-1), color, 12)
         disabled = bool(item.state & 4)
+        font = 'suggestion' if 2301 <= cid <= 2302 else 'ui'
         self._text(item.hdc, text, (r.left, r.top, r.right, r.bottom),
-                   color=(170, 172, 176) if disabled else (34, 36, 39), flags=0x25)
+                   font=font, color=(170, 172, 176) if disabled else (34, 36, 39), flags=0x25)
         if item.state & 16:  # 使用同形圆角焦点边框，保留键盘操作提示。
             self._round(item.hdc, (r.left+1, r.top+1, r.right-1, r.bottom-1),
                         color, 12, (121, 151, 134))
             self._text(item.hdc, text, (r.left, r.top, r.right, r.bottom),
-                       color=(34, 36, 39), flags=0x25)
+                       font=font, color=(34, 36, 39), flags=0x25)
         return 1
 
     def _apply(self, kind, payload):
@@ -225,10 +227,9 @@ class ChatPanel(T.TeacherDialog):
             version, selected, questions = payload
             if version != self._suggestion_version or selected != self.stage_id or self._busy or self.more:
                 return
-            self.suggested_questions = questions[:3]
-            if questions:
-                W.user32.SetWindowPos(self.chat_view.hwnd, None, self.s(28), self.s(126),
-                                      self.s(404), self.s(258), W.SWP_NOZORDER)
+            self.suggested_questions = questions[:2]
+            W.user32.SetWindowPos(self.chat_view.hwnd, None, self.s(28), self.s(126),
+                                  self.s(404), self.s(292 if questions else 358), W.SWP_NOZORDER)
             W.user32.ShowWindow(self.h_reco_label,W.SW_SHOW if questions else W.SW_HIDE)
             for i, button in enumerate(self.suggestion_buttons):
                 if i < len(self.suggested_questions):

@@ -244,7 +244,7 @@
       if (!j.ok || !j.questions || !j.questions.length || version !== S.followupVersion || S.busy || sid !== S.sid || selected !== S.stageId) return;
       var box = document.createElement('section'); box.className = 'followups';
       var label = document.createElement('div'); label.className = 'quick-label'; label.textContent = '接下来还可以问'; box.appendChild(label);
-      j.questions.forEach(function (question) {
+      j.questions.slice(0,2).forEach(function (question) {
         var button = document.createElement('button'); button.type='button'; button.className='chip'; button.textContent=question;
         button.addEventListener('click', function () { sendText(question); }); box.appendChild(button);
       });
