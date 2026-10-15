@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#ffffff">
 <title>森林小博士 · 云端版</title>
 <link rel="stylesheet" href="/static/style.css">
-<link rel="stylesheet" href="/static/chat.css?v=20261015avatars1">
-<link rel="stylesheet" href="/static/companion.css?v=20261015avatars1">
+<link rel="stylesheet" href="/static/chat.css?v=20261015video1">
+<link rel="stylesheet" href="/static/companion.css?v=20261015video1">
 </head>
 <body class="chat-surface">
 <div id="app" class="app">
@@ -27,12 +27,12 @@
   </header>
 
   <nav class="view-switch" aria-label="选择显示方式">
-    <button type="button" id="view3d" aria-pressed="false">形象对话</button>
+    <button type="button" id="view3d" aria-pressed="false">动画对话</button>
     <button type="button" id="viewChat" aria-pressed="true">文字聊天</button>
   </nav>
   <section id="companion" class="companion" hidden aria-label="森林小博士形象语音伙伴">
     <div class="companion-cloud"><p class="companion-caption" id="companionCaption" aria-live="polite">你好呀，我们一起寻找大自然的隐身高手吧！</p></div>
-    <button type="button" class="character-stage character-preview" id="characterStage" data-preview="true" aria-label="点击森林小博士开始说话"><img class="official-character" id="companionPoster" src="/assets/avatar/forest-explorer-preview.webp?v=20261015official1" alt="身穿迷彩服、戴眼镜的森林小博士勘探家"><video class="official-character" id="companionVideo" muted playsinline loop preload="metadata" hidden aria-hidden="true" disablepictureinpicture></video><span class="preview-label">角色形象预览 · 对话动画制作中</span><span id="modelLoading" hidden></span></button>
+    <button type="button" class="character-stage character-preview" id="characterStage" data-preview="true" aria-label="点击森林小博士开始说话"><img class="official-character" id="companionPoster" src="/assets/avatar/forest-talking-poster.webp?v=20261015video1" alt="身穿迷彩服、戴眼镜的森林小博士勘探家"><video class="official-character" id="companionVideo" src="/assets/avatar/forest-talking.mp4?v=20261015video1" muted playsinline loop preload="metadata" hidden aria-hidden="true" disablepictureinpicture></video><span class="preview-label">动画形象 · 点击说话</span><span id="modelLoading" hidden></span></button>
     <div class="companion-bottom">
       <p class="companion-state" id="companionState" role="status">点击我，说说你的发现</p>
       <div class="companion-actions"><button type="button" id="companionTalk">点击说话</button><button type="button" id="companionReplay" hidden>重新朗读</button><button type="button" id="companionCancel" hidden>取消录音</button></div>
@@ -144,9 +144,9 @@
   </div>
 
 </div>
-<script src="/static/app.js?v=20261015avatars1"></script>
+<script src="/static/app.js?v=20261015video1"></script>
 <script src="/static/companion-model.js?v=20261015a"></script>
-<script src="/static/character-playback.js?v=20261015movie1"></script>
-<script src="/static/companion.js?v=20261015avatars1"></script>
+<script src="/static/character-playback.js?v=20261015video1"></script>
+<script src="/static/companion.js?v=20261015video1"></script>
 </body>
 </html>

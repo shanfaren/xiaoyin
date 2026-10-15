@@ -405,7 +405,47 @@ class Handler(BaseHTTPRequestHandler):
         with open(full, 'rb') as f:
             data = f.read()
         cache = not full.endswith('.html')
+        if ctype.startswith('video/'):
+            return self._send_video(data, ctype)
         return self._send_bytes(data, ctype, cache=cache)
+
+    def _send_video(self, data, ctype):
+        """Single byte-range support for mobile browsers and looping playback."""
+        size = len(data)
+        start, end, status = 0, size - 1, 200
+        requested = self.headers.get('Range')
+        if requested:
+            match = re.fullmatch(r'bytes=(\d*)-(\d*)', requested.strip())
+            try:
+                if not match or not any(match.groups()):
+                    raise ValueError()
+                left, right = match.groups()
+                if left:
+                    start = int(left)
+                    end = min(int(right), size - 1) if right else size - 1
+                else:
+                    length = int(right)
+                    if length <= 0:
+                        raise ValueError()
+                    start = max(0, size - length)
+                if start >= size or start > end:
+                    raise ValueError()
+                status = 206
+            except ValueError:
+                self.send_response(416)
+                self.send_header('Content-Range', 'bytes */%d' % size)
+                self.send_header('Content-Length', '0')
+                self.end_headers()
+                return
+        self.send_response(status)
+        self.send_header('Content-Type', ctype)
+        self.send_header('Accept-Ranges', 'bytes')
+        self.send_header('Content-Length', str(end - start + 1))
+        self.send_header('Cache-Control', 'public, max-age=3600')
+        if status == 206:
+            self.send_header('Content-Range', 'bytes %d-%d/%d' % (start, end, size))
+        self.end_headers()
+        self.wfile.write(data[start:end + 1])
 
     # ---------------- 配置 ----------------
     def _client_config(self):
