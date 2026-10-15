@@ -42,6 +42,8 @@
 .chat-surface .inputbar #btnStop { color:#b14237; font-size:13px; }
 .chat-surface .inputbar button:focus-visible,.attachment-menu button:focus-visible { outline:2px solid #748e82; outline-offset:2px; }
 .chat-surface .inputbar button:active { background:#ededf0; }
+.chat-surface .inputbar #btnModeToggle{flex:0 0 100px;width:100px;min-width:100px;border:1px solid #dfe4db;border-radius:10px;background:#f4f5f2;font-size:15px;font-weight:600;white-space:nowrap;}
+.chat-surface .inputbar #btnModeToggle.holding{background:#d8e9d9;}
 .chat-surface .msg { align-items:flex-start; gap:10px; }
 .chat-surface .bubble { box-shadow:none; font-size:17px; max-width:88%; }
 .chat-surface .msg.a .bubble { border:1px solid #f0e8dc; background:#fff; padding:12px 16px; border-radius:16px; }

@@ -198,7 +198,7 @@
     var asrOk = v.asr && v.asr.state === 'configured';
     var hint = $('voiceHint');
     if (asrOk) {
-      hint.textContent = '点一下，说完再点停止，我就能听懂啦。';
+      hint.textContent = '按住说话，松开结束；文字会逐步显示，结束后校正。';
       $('btnVoiceBig').hidden = false;
     } else {
       $('btnVoiceBig').hidden = false;
