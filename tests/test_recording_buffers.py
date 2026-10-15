@@ -36,6 +36,19 @@ class RecordingBuffersTest(unittest.TestCase):
         self.assertEqual(recorder.stop(), b'')
         recorder.close()
 
+    def test_preview_reads_completed_buffers_without_stopping_device(self):
+        recorder = W.WaveInRecorder()
+        recorder.start()
+        for index in range(8):
+            ctypes.memmove(recorder._headers[index].lpData, bytes([index+1])*8000, 8000)
+            recorder._headers[index].dwBytesRecorded=8000
+            recorder._headers[index].dwFlags=1 if index < 7 else 0
+        self.assertEqual(len(recorder.snapshot()), 7*8000)
+        self.device.waveInStop.assert_not_called()
+        self.assertTrue(recorder._recording)
+        self.assertEqual(len(recorder.stop()), 8*8000)
+        recorder.close()
+
     def test_buffer_failure_does_not_silently_limit_recording(self):
         self.device.waveInAddBuffer.side_effect = [0, 0, 1]
         recorder = W.WaveInRecorder()

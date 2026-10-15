@@ -15,7 +15,7 @@
     stageId: 'qa',
     mode: 'student',
     voiceMode: false,      // 底部栏当前是语音还是文字
-    recording: false,
+    recording: false, recordIntent:0,
     busy: false,
     mediaRecorder: null,
     chunks: [],
@@ -572,7 +572,7 @@
   }
 
   function startRecording() {
-    if (S.busy || S.recording || S.micPending) return;
+    if (S.busy || S.recording || S.micPending) return false;
     stopAudio(); unlockPlayback();
     if (!isSecure()) {
       // 局域网HTTP不能直接访问网页麦克风，改由系统录音/选择录音提供音频。
@@ -589,14 +589,21 @@
       return;
     }
     S.micPending = true;
+    var intent=++S.recordIntent;
     navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+      if(intent!==S.recordIntent){stream.getTracks().forEach(function(t){t.stop();});S.micPending=false;return;}
       S.micPending = false;
       S.micStream = stream;
       var chunks = [];
+      $('recTranscript').textContent='正在听，请开始说话…';
+      S.liveRecorder=window.ForestLiveTranscription&&window.ForestLiveTranscription.create(stream,function(text){
+        if(S.recording){$('recTranscript').textContent=text;window.dispatchEvent(new CustomEvent('forest:transcript',{detail:{text:text}}));}
+      });
       var mr = new MediaRecorder(stream);
       S.mediaRecorder = mr;
       mr.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
       mr.onstop = function () {
+        if(S.liveRecorder){S.liveRecorder.stop();S.liveRecorder=null;}
         stream.getTracks().forEach(function (t) { t.stop(); });
         if(S.recordTimer) clearTimeout(S.recordTimer);
         S.recording=false; $('recLayer').hidden=true;
@@ -611,6 +618,8 @@
       setStatus('正在听…');
       setAvatarState('listening');
     }).catch(function (err) {
+      if(S.liveRecorder){S.liveRecorder.stop();S.liveRecorder=null;}
+      if(S.micStream){S.micStream.getTracks().forEach(function(t){t.stop();});S.micStream=null;}
       S.micPending = false;
       $('recLayer').hidden = true;
       addNotice('没有拿到麦克风权限。请在浏览器里允许使用麦克风，或者直接用文字输入。');
@@ -618,6 +627,8 @@
   }
 
   function stopRecording(send) {
+    S.recordIntent++;
+    if(S.liveRecorder){S.liveRecorder.stop();S.liveRecorder=null;}
     if(S.recordTimer) clearTimeout(S.recordTimer);
     S.recording = false;
     $('recLayer').hidden = true;
@@ -706,6 +717,8 @@
         var parts=[];
         for(var i=0;i<e.results.length;i++) if(e.results[i].isFinal) parts.push(e.results[i][0].transcript);
         rec.forestText=parts.join('');
+        $('recTranscript').textContent=rec.forestText;
+        window.dispatchEvent(new CustomEvent('forest:transcript',{detail:{text:rec.forestText}}));
       };
       rec.onerror = function () {
         setStatus('');
@@ -732,6 +745,8 @@
     snapshot: function () { return {busy:S.busy, recording:S.recording, state:AVATAR_STATE, profile:S.stageId}; },
     talk: function () { if(S.recording) stopRecording(true); else if(S.busy) $('btnStop').click(); else startRecording(); },
     cancel: function () { stopRecording(false); },
+    holdStart:function(){return startRecording();},
+    holdEnd:function(cancel){stopRecording(!cancel);},
     replay: function (text) { unlockPlayback(); if(text) speak(text); },
     profile: function (id) { var b=document.querySelector('#interactionTabs [data-profile="'+id+'"]'); if(b) b.click(); }
   };
@@ -815,17 +830,9 @@
     $('btnPhotoReplace').setAttribute('type', 'button');
     $('btnPhotoDelete').setAttribute('type', 'button');
 
-    $('btnModeToggle').addEventListener('click', function () {
-      S.voiceMode = true;
-      startRecording();
-    });
+    window.bindForestHold($('btnModeToggle'),startRecording,function(cancel){stopRecording(!cancel);});
 
-    $('btnVoiceBig').addEventListener('click', function () {
-      S.voiceMode = true;
-      $('modeIcon').textContent = '🎤';
-      $('modeLabel').textContent = '语音';
-      startRecording();
-    });
+    window.bindForestHold($('btnVoiceBig'),startRecording,function(cancel){stopRecording(!cancel);});
     $('btnRecStop').addEventListener('click', function () { stopRecording(true); });
     $('btnRecCancel').addEventListener('click', function () { stopRecording(false); });
 

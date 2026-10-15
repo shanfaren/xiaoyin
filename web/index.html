@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <title>森林小博士 · 云端版</title>
-<link rel="stylesheet" href="/static/style.css">
+<link rel="stylesheet" href="/static/style.css?v=20261015hold1">
 <link rel="stylesheet" href="/static/chat.css?v=20261015video1">
-<link rel="stylesheet" href="/static/companion.css?v=20261015video2">
+<link rel="stylesheet" href="/static/companion.css?v=20261015hold1">
 </head>
 <body class="chat-surface">
 <div id="app" class="app">
@@ -35,7 +35,7 @@
     <button type="button" class="character-stage character-preview" id="characterStage" data-preview="true" aria-label="点击森林小博士开始说话"><img class="official-character" id="companionPoster" src="/assets/avatar/forest-talking-poster.webp?v=20261015video1" alt="身穿迷彩服、戴眼镜的森林小博士勘探家"><video class="official-character" id="companionVideo" src="/assets/avatar/forest-talking.mp4?v=20261015video1" muted playsinline loop preload="metadata" hidden aria-hidden="true" disablepictureinpicture></video><span class="preview-label">动画形象 · 点击说话</span><span id="modelLoading" hidden></span></button>
     <div class="companion-bottom">
       <p class="companion-state" id="companionState" role="status">点击我，说说你的发现</p>
-      <div class="companion-actions"><button type="button" id="companionTalk">点击说话</button><button type="button" id="companionReplay" hidden>重新朗读</button><button type="button" id="companionCancel" hidden>取消录音</button></div>
+      <div class="companion-actions"><button type="button" id="companionTalk">按住说话</button><button type="button" id="companionReplay" hidden>重新朗读</button><button type="button" id="companionCancel" hidden>取消录音</button></div>
       <label class="companion-purpose">一起做什么 <select id="companionPurpose" aria-label="选择对话用途"><option value="qa">提问答疑</option><option value="hint">探究提示</option><option value="share">收获分享</option></select></label>
       <p class="companion-note">左右拖动看看我 · 也可以切换文字聊天</p>
     </div>
@@ -76,7 +76,7 @@
 
       <div class="voice-entry">
         <button class="voice-big" id="btnVoiceBig">
-          <span class="mic-dot"></span>开始语音对话
+          <span class="mic-dot"></span>按住说话
         </button>
         <div class="voice-hint" id="voiceHint"></div>
       </div>
@@ -124,7 +124,7 @@
     <div class="text-wrap">
       <input type="text" id="textInput" aria-label="消息" placeholder="发消息或点右侧说话…" autocomplete="off" enterkeyhint="send">
     </div>
-    <button class="mode-toggle" id="btnModeToggle" aria-label="语音提问"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 9a4 4 0 010 6m3-9a8 8 0 010 12"/></svg><span id="modeIcon" hidden></span><span id="modeLabel" hidden></span></button>
+    <button class="mode-toggle" id="btnModeToggle" aria-label="按住说话，松开结束">按住说话<span id="modeIcon" hidden></span><span id="modeLabel" hidden></span></button>
     <button class="icon-btn round" id="btnMore" aria-label="更多功能" aria-expanded="false" aria-controls="attachmentMenu"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M7 12h10"/></svg></button>
     <button class="send-btn" id="btnSend" aria-label="发送" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5m-6 6l6-6 6 6"/></svg></button>
     <button class="send-btn stop" id="btnStop" hidden aria-label="停止生成">停止</button>
@@ -137,16 +137,19 @@
     <div class="rec-card">
       <div class="rec-wave"><i></i><i></i><i></i><i></i><i></i></div>
       <div class="rec-title">正在听你说…</div>
-      <div class="rec-tip">说完点“停止”，我就能听懂啦</div>
+      <div class="rec-tip">松开结束录音，文字会在识别后校正</div>
+      <div id="recTranscript" aria-live="polite">正在听，请开始说话…</div>
       <button class="btn danger big" id="btnRecStop">停止录音</button>
       <button class="btn ghost" id="btnRecCancel">取消发送</button>
     </div>
   </div>
 
 </div>
-<script src="/static/app.js?v=20261015recording2"></script>
+<script src="/static/live-transcription.js?v=20261015hold1"></script>
+<script src="/static/hold-to-talk.js?v=20261015hold1"></script>
+<script src="/static/app.js?v=20261015hold1"></script>
 <script src="/static/companion-model.js?v=20261015a"></script>
 <script src="/static/character-playback.js?v=20261015video1"></script>
-<script src="/static/companion.js?v=20261015video1"></script>
+<script src="/static/companion.js?v=20261015hold1"></script>
 </body>
 </html>

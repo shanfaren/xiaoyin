@@ -635,6 +635,14 @@ class WaveInRecorder:
         self._buffers = []
         self._headers = []
 
+    def snapshot(self):
+        """仅读取设备已填满的缓冲，不停止录音，也不重置设备。"""
+        data = bytearray()
+        for buf, hdr in list(zip(self._buffers, self._headers)):
+            if hdr.dwFlags & 1:  # WHDR_DONE；当前正在写入的一块交给最终识别。
+                data.extend(buf.raw[:min(len(buf.raw), int(hdr.dwBytesRecorded or 0))])
+        return bytes(data)
+
     def close(self):
         if self._opened:
             try:

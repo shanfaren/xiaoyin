@@ -10,10 +10,10 @@
   function sync(){
     var s=snapshot(); state=s.state;
     $('companionPurpose').value=s.profile||'qa';$('companionPurpose').disabled=!!s.busy||!!s.recording;
-    $('companionTalk').textContent=s.recording?'说完了，发送':s.busy?'停止回答':state==='speaking'?'打断，再说一句':'点击说话';
+    $('companionTalk').textContent=s.recording?'松开结束':s.busy?'正在回答…':'按住说话';
     $('companionCancel').hidden=!s.recording;
     $('companionReplay').hidden=!lastAnswer||s.recording||s.busy;
-    $('companionState').textContent=s.recording?'我在听，说完再点一下我':s.busy?'让我想一想…':state==='speaking'?'正在和你说话':state==='thinking'?'正在准备声音…':'点击我，说说你的发现';
+    $('companionState').textContent=s.recording?'我在听，松开结束录音':s.busy?'让我想一想…':state==='speaking'?'正在和你说话':state==='thinking'?'正在准备声音…':'按住下方按钮，说说你的发现';
     $('characterStage').setAttribute('aria-label',s.recording?'点击森林小博士停止录音并发送':'点击森林小博士开始说话');
     $('characterStage').dataset.state=state;
     movie.update(state==='speaking',active,!document.hidden);
@@ -70,7 +70,7 @@
   $('view3d').addEventListener('click',function(){setView('3d');});
   $('viewChat').addEventListener('click',function(){setView('chat');});
   function talk(){notice='';if(bridge()){bridge().talk();sync();}}
-  $('companionTalk').addEventListener('click',talk);
+  window.bindForestHold($('companionTalk'),function(){return bridge().holdStart();},function(cancel){bridge().holdEnd(cancel);});
   $('characterStage').addEventListener('click',function(){if(Date.now()-lastDrag>300)talk();});
   $('companionCancel').addEventListener('click',function(){bridge().cancel();sync();});
   $('companionReplay').addEventListener('click',function(){bridge().replay(lastAnswer);sync();});
@@ -81,6 +81,7 @@
   window.addEventListener('pointerup',endDrag);window.addEventListener('pointercancel',endDrag);
   window.addEventListener('forest:state',function(e){state=e.detail.state;sync();});
   window.addEventListener('forest:question',function(e){showCaption('让我想一想…');});
+  window.addEventListener('forest:transcript',function(e){showCaption('我听到：'+e.detail.text);});
   window.addEventListener('forest:partial',function(e){showCaption(e.detail.text);});
   window.addEventListener('forest:answer',function(e){lastAnswer=e.detail.text;showCaption(lastAnswer);sync();});
   window.addEventListener('forest:notice',function(e){notice=e.detail.text;if(lastAnswer && notice.indexOf('欢迎回来')===0)return;showCaption(notice);});
