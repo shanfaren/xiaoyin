@@ -120,7 +120,7 @@
     wrap.className = 'msg ' + role;
     var who = document.createElement('div');
     who.className = 'who';
-    who.innerHTML = AVATAR_SVG;
+    who.innerHTML = role === 'u' ? '<img src="/assets/avatar/user-cartoon.png?v=20261015avatars1" alt="我" loading="lazy">' : AVATAR_SVG;
     var bubble = document.createElement('div');
     bubble.className = 'bubble';
     if (tag) {

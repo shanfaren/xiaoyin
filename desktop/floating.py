@@ -74,11 +74,13 @@ class FloatingWindow:
     """悬浮窗本体。"""
 
     def __init__(self, state_provider=None, on_open_dialog=None, on_exit=None,
-                 on_state_change=None):
+                 on_state_change=None, activation_provider=None, on_activate=None):
         self.state_provider = state_provider or (lambda: 'idle')
         self.on_open_dialog = on_open_dialog or (lambda: None)
         self.on_exit = on_exit or (lambda: None)
         self.on_state_change = on_state_change or (lambda s: None)
+        self.activation_provider = activation_provider or (lambda: False)
+        self.on_activate = on_activate or self.show
 
         self.hwnd = None
         self.hinstance = W.kernel32.GetModuleHandleW(None)
@@ -253,6 +255,8 @@ class FloatingWindow:
                 self._save_pos()
             return 0
         if msg == W.WM_TIMER:
+            if getattr(self, 'activation_provider', lambda: False)():
+                self.on_activate()
             # 拖动时保持当前头像帧，避免移动与动画反复上传同一分层位图。
             if self._dragging:
                 return 0

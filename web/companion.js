@@ -4,6 +4,7 @@
   var ready=false,loading=false,active=false,sceneData=null,state='idle',lastAnswer='',notice='',frame=0,previous=0;
   var reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var drag=null,turned=-.10,lastDrag=0;
+  var movie=window.createCharacterPlayback($('companionVideo'),$('companionPoster'));
   function bridge(){return window.forestConversation;}
   function snapshot(){return bridge()?bridge().snapshot():{state:'idle'};}
   function sync(){
@@ -15,11 +16,13 @@
     $('companionState').textContent=s.recording?'我在听，说完再点一下我':s.busy?'让我想一想…':state==='speaking'?'正在和你说话':state==='thinking'?'正在准备声音…':'点击我，说说你的发现';
     $('characterStage').setAttribute('aria-label',s.recording?'点击森林小博士停止录音并发送':'点击森林小博士开始说话');
     $('characterStage').dataset.state=state;
+    movie.update(state==='speaking',active,!document.hidden);
   }
   function showCaption(text){$('companionCaption').textContent=text;$('companionCaption').scrollTop=0;}
   function setView(view){
     cancelAnimationFrame(frame);frame=0;
     active=view==='3d';document.body.classList.toggle('avatar-view',active);$('companion').hidden=!active;
+    movie.update(state==='speaking',active,!document.hidden);
     $('view3d').setAttribute('aria-pressed',String(active));$('viewChat').setAttribute('aria-pressed',String(!active));
     try{localStorage.setItem('forest_view',view);}catch(e){}
     if(active){loadScene();if(ready){resize();animate();}sync();}
@@ -84,7 +87,7 @@
   new MutationObserver(sync).observe($('btnStop'),{attributes:true,attributeFilter:['hidden']});
   new MutationObserver(sync).observe($('recLayer'),{attributes:true,attributeFilter:['hidden']});
   new MutationObserver(sync).observe($('interactionTabs'),{attributes:true,subtree:true,attributeFilter:['aria-pressed']});
-  document.addEventListener('visibilitychange',function(){if(document.hidden){cancelAnimationFrame(frame);frame=0;}else if(active&&ready)animate();});
+  document.addEventListener('visibilitychange',function(){movie.update(state==='speaking',active,!document.hidden);if(document.hidden){cancelAnimationFrame(frame);frame=0;}else if(active&&ready)animate();});
   $('btnNew').addEventListener('click',function(){if(snapshot().busy)return;lastAnswer='';showCaption('你好呀，我们一起寻找大自然的隐身高手吧！');sync();});
   var preferred='3d';try{preferred=localStorage.getItem('forest_view')||'3d';}catch(e){}
   setView(preferred==='chat'?'chat':'3d');

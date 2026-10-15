@@ -47,6 +47,5 @@
 .official-character{display:block;width:100%;height:calc(100% - 24px);object-fit:contain;mix-blend-mode:multiply;pointer-events:none;transform-origin:50% 85%}
 .preview-label{display:block;font-size:10px;color:#839078;line-height:24px;pointer-events:none}
 .character-preview[data-state="listening"] .official-character{filter:drop-shadow(0 0 7px #89ae7550)}
-.character-preview[data-state="speaking"] .official-character{animation:companion-breathe 2.4s ease-in-out infinite}
-@keyframes companion-breathe{50%{transform:scale(1.012) translateY(-2px)}}
+.official-character[hidden]{display:none}
 @media(prefers-reduced-motion:reduce){.official-character{animation:none!important}}
