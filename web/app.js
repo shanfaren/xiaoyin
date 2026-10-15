@@ -64,6 +64,7 @@
   function setAvatarState(state) {
     if (state === AVATAR_STATE) return;
     AVATAR_STATE = state;
+    window.dispatchEvent(new CustomEvent('forest:state', {detail:{state:state}}));
     ['brandAvatarImg', 'heroAvatarImg'].forEach(function (id) {
       var img = $(id);
       if (!img) return;
@@ -138,7 +139,7 @@
         attachTools(bubble, m.content);
       }
     });
-    if (msgs[msgs.length - 1].role === 'assistant') loadFollowups();
+    if (msgs[msgs.length - 1].role === 'assistant') { loadFollowups(); window.dispatchEvent(new CustomEvent('forest:answer',{detail:{text:msgs[msgs.length-1].content}})); }
   }
 
   /* ---------- 渲染 ---------- */
@@ -170,6 +171,7 @@
   }
 
   function addNotice(text) {
+    window.dispatchEvent(new CustomEvent('forest:notice', {detail:{text:text}}));
     var d = document.createElement('div');
     d.className = 'notice';
     d.textContent = text;
@@ -178,6 +180,7 @@
   }
 
   function addError(title, detail) {
+    window.dispatchEvent(new CustomEvent('forest:notice', {detail:{text:title+' '+(detail||'')}}));
     var d = document.createElement('div');
     d.className = 'err';
     var b = document.createElement('b');
@@ -281,6 +284,7 @@
   function doChat(payload) {
     if (!S.sid) { createSession().then(function () { doChat(payload); }); return; }
     stopAudio();
+    window.dispatchEvent(new CustomEvent('forest:question', {detail:{text:payload.text}}));
     clearFollowups();
     S.stopped = false;
     $('welcome').hidden = true;
@@ -321,7 +325,7 @@
               if (line.indexOf('data: ') !== 0) return;
               var ev;
               try { ev = JSON.parse(line.slice(6)); } catch (e) { return; }
-              handleEvent(ev, bubble, function (t) { acc += t; });
+              handleEvent(ev, bubble, function (t) { acc += t; window.dispatchEvent(new CustomEvent('forest:partial',{detail:{text:acc}})); });
             });
           }
           return pump();
@@ -341,6 +345,7 @@
         bubble.parentNode && bubble.parentNode.parentNode && bubble.parentNode.parentNode.removeChild(bubble.parentNode);
       } else {
         attachTools(bubble, acc);
+        window.dispatchEvent(new CustomEvent('forest:answer', {detail:{text:acc}}));
         if (!S.stopped) loadFollowups();
         if (!S.stopped && S.cfg && S.cfg.voice && S.cfg.voice.auto_play) speak(acc);
       }
@@ -401,8 +406,8 @@
     var seq = S.audioSeq;
     if (typeof ttsOk === 'undefined') ttsOk = !!(S.cfg && S.cfg.voice && S.cfg.voice.tts && S.cfg.voice.tts.state === 'configured');
     if (ttsOk) {
-      setStatus('播放中…');
-      setAvatarState('speaking');
+      setStatus('准备朗读…');
+      setAvatarState('thinking');
       fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -418,6 +423,7 @@
         S.playbackAudio = a;
         a.src = url; a.muted = false;
         S.audioEl = a;
+        a.onplaying = function () { if(seq===S.audioSeq){setStatus('播放中…'); setAvatarState('speaking');} };
         a.onended = function () { URL.revokeObjectURL(url); setStatus(''); setAvatarState('idle'); };
         return a.play();
       }).catch(function () {
@@ -614,7 +620,7 @@
   }
 
   function startRecording() {
-    if (S.busy || S.recording) return;
+    if (S.busy || S.recording || S.micPending) return;
     stopAudio(); unlockPlayback();
     if (!isSecure()) {
       // 局域网HTTP不能直接访问网页麦克风，改由系统录音/选择录音提供音频。
@@ -630,7 +636,9 @@
       addNotice('录音需要 https 安全地址。当前不是 https，可能无法录音，请先用文字输入，或让老师用 https 地址打开。');
       return;
     }
+    S.micPending = true;
     navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
+      S.micPending = false;
       S.micStream = stream;
       S.chunks = [];
       var mr = new MediaRecorder(stream);
@@ -648,6 +656,7 @@
       setStatus('正在听…');
       setAvatarState('listening');
     }).catch(function (err) {
+      S.micPending = false;
       $('recLayer').hidden = true;
       addNotice('没有拿到麦克风权限。请在浏览器里允许使用麦克风，或者直接用文字输入。');
     });
@@ -746,6 +755,15 @@
       addNotice(reason + ' 请用文字告诉我吧。');
     }
   }
+
+  // UI-only bridge: both views use this device's existing session and voice chain.
+  window.forestConversation = {
+    snapshot: function () { return {busy:S.busy, recording:S.recording, state:AVATAR_STATE, profile:S.stageId}; },
+    talk: function () { if(S.recording) stopRecording(true); else if(S.busy) $('btnStop').click(); else startRecording(); },
+    cancel: function () { stopRecording(false); },
+    replay: function (text) { unlockPlayback(); if(text) speak(text); },
+    profile: function (id) { var b=document.querySelector('#interactionTabs [data-profile="'+id+'"]'); if(b) b.click(); }
+  };
 
   /* ---------- 初始化 ---------- */
   function bind() {

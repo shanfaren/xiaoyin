@@ -7,6 +7,7 @@
 <title>森林小博士 · 自然探究伙伴</title>
 <link rel="stylesheet" href="/static/style.css">
 <link rel="stylesheet" href="/static/chat.css?v=20261015voice">
+<link rel="stylesheet" href="/static/companion.css?v=20261015cloud2">
 </head>
 <body class="chat-surface">
 <div id="app" class="app">
@@ -25,6 +26,20 @@
     <button class="icon-btn" id="btnNew" title="开始新对话" aria-label="开始新对话">↺</button>
   </header>
 
+  <nav class="view-switch" aria-label="选择显示方式">
+    <button type="button" id="view3d" aria-pressed="false">3D 伙伴</button>
+    <button type="button" id="viewChat" aria-pressed="true">文字聊天</button>
+  </nav>
+  <section id="companion" class="companion" hidden aria-label="森林小博士立体语音伙伴">
+    <div class="companion-cloud"><p class="companion-caption" id="companionCaption" aria-live="polite">你好呀，我们一起寻找大自然的隐身高手吧！</p></div>
+    <button type="button" class="character-stage" id="characterStage" aria-label="点击森林小博士开始说话，左右拖动可以转动角色"><span id="modelLoading">森林小博士正在准备见你…</span></button>
+    <div class="companion-bottom">
+      <p class="companion-state" id="companionState" role="status">点击我，说说你的发现</p>
+      <div class="companion-actions"><button type="button" id="companionTalk">点击说话</button><button type="button" id="companionReplay" hidden>重新朗读</button><button type="button" id="companionCancel" hidden>取消录音</button></div>
+      <label class="companion-purpose">一起做什么 <select id="companionPurpose" aria-label="选择对话用途"><option value="qa">提问答疑</option><option value="hint">探究提示</option><option value="share">收获分享</option></select></label>
+      <p class="companion-note">左右拖动看看我 · 也可以切换文字聊天</p>
+    </div>
+  </section>
   <nav class="interaction-tabs" id="interactionTabs" aria-label="选择对话用途">
     <button type="button" data-profile="qa" aria-pressed="true">提问答疑</button>
     <button type="button" data-profile="hint" aria-pressed="false">探究提示</button>
@@ -129,6 +144,8 @@
   </div>
 
 </div>
-<script src="/static/app.js?v=20261015voice2"></script>
+<script src="/static/app.js?v=20261015dual3"></script>
+<script src="/static/companion-model.js?v=20261015a"></script>
+<script src="/static/companion.js?v=20261015cloud2"></script>
 </body>
 </html>
