@@ -592,16 +592,19 @@
     navigator.mediaDevices.getUserMedia({ audio: true }).then(function (stream) {
       S.micPending = false;
       S.micStream = stream;
-      S.chunks = [];
+      var chunks = [];
       var mr = new MediaRecorder(stream);
       S.mediaRecorder = mr;
-      mr.ondataavailable = function (e) { if (e.data && e.data.size) S.chunks.push(e.data); };
+      mr.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
       mr.onstop = function () {
         stream.getTracks().forEach(function (t) { t.stop(); });
-        var blob = new Blob(S.chunks, { type: mr.mimeType || 'audio/webm' });
+        if(S.recordTimer) clearTimeout(S.recordTimer);
+        S.recording=false; $('recLayer').hidden=true;
+        S.micPending=false; S.micStream=null;
+        var blob = new Blob(chunks, { type: mr.mimeType || 'audio/webm' });
         transcribe(blob);
       };
-      mr.start();
+      mr.start(250);
       S.recording = true;
       S.recordTimer=setTimeout(function () { if(S.recording) stopRecording(true); },60000);
       $('recLayer').hidden = false;
@@ -619,9 +622,16 @@
     S.recording = false;
     $('recLayer').hidden = true;
     setStatus('');
+    if (S.speechRec) {
+      var speech = S.speechRec;
+      if (send === false) { speech.onresult=null; speech.onend=null; speech.abort(); S.speechRec=null; S.micPending=false; setAvatarState('idle'); }
+      else { S.micPending=true; speech.stop(); }
+      return;
+    }
     if (S.mediaRecorder && S.mediaRecorder.state !== 'inactive') {
+      S.micPending=true;
       if (send === false) {
-        S.mediaRecorder.onstop = function () { if(S.micStream) S.micStream.getTracks().forEach(function (t) {t.stop();}); S.micStream=null; };
+        S.mediaRecorder.onstop = function () { if(S.micStream) S.micStream.getTracks().forEach(function (t) {t.stop();}); S.micStream=null; S.micPending=false; };
         try { S.mediaRecorder.stop(); } catch (e) {}
       } else {
         S.mediaRecorder.stop();
@@ -689,20 +699,29 @@
       var rec = new SR();
       rec.lang = 'zh-CN';
       rec.interimResults = false;
+      rec.continuous = true;
       rec.maxAlternatives = 1;
       rec.onresult = function (e) {
-        var t = e.results[0][0].transcript;
-        setStatus('');
-        showAsrEdit(t);
+        // results包含到当前为止的全部分段，不能只读取第0段。
+        var parts=[];
+        for(var i=0;i<e.results.length;i++) if(e.results[i].isFinal) parts.push(e.results[i][0].transcript);
+        rec.forestText=parts.join('');
       };
       rec.onerror = function () {
         setStatus('');
         addNotice('手机自带的语音输入没能用起来，请用文字告诉我吧。');
       };
-      rec.onend = function () { setStatus(''); };
+      rec.onend = function () {
+        if(S.recordTimer) clearTimeout(S.recordTimer);
+        S.recording=false; S.micPending=false; S.speechRec=null;
+        $('recLayer').hidden=true; setStatus(''); setAvatarState('idle');
+        if(rec.forestText) showAsrEdit(rec.forestText);
+      };
       S.speechRec = rec;
       setStatus('正在听…（手机自带识别）');
       rec.start();
+      S.recording=true; $('recLayer').hidden=false; setAvatarState('listening');
+      S.recordTimer=setTimeout(function(){if(S.recording) stopRecording(true);},60000);
     } catch (e) {
       addNotice(reason + ' 请用文字告诉我吧。');
     }
