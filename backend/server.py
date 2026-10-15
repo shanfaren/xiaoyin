@@ -153,6 +153,10 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header('Content-Type', 'application/json; charset=utf-8')
         self.send_header('Content-Length', str(len(body)))
+        # Close JSON responses so unread rejected request bodies cannot corrupt
+        # the next request on a proxy's reused HTTP/1.1 connection.
+        self.send_header('Connection', 'close')
+        self.close_connection = True
         self.send_header('Cache-Control', 'no-store')
         for k, v in (extra_headers or {}).items():
             self.send_header(k, v)
