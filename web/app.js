@@ -5,37 +5,8 @@
 (function () {
   'use strict';
 
-  /* ---------- 角色头像（内联 SVG，离线可用；资产文件见 /assets/avatar/） ---------- */
-  var AVATAR_SVG = ''
-    + '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="森林小博士">'
-    + '<defs>'
-    + '<radialGradient id="xg1" cx="50%" cy="32%" r="72%">'
-    + '<stop offset="0%" stop-color="#ffffff"/><stop offset="100%" stop-color="#EFE6D2"/></radialGradient>'
-    + '<filter id="xg2" x="-60%" y="-60%" width="220%" height="220%">'
-    + '<feGaussianBlur stdDeviation="2.4" result="b"/>'
-    + '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>'
-    + '</defs>'
-    + '<path d="M50 17 C61 1, 83 6, 83 9 C80 19, 60 19, 50 17 Z" fill="#4A8F56"/>'
-    + '<path d="M54 15 L56 9.5 L57.6 14.4" stroke="#2F6B3F" stroke-width="1.4" fill="none" stroke-linejoin="round"/>'
-    + '<path d="M56.5 13 L76 8.8" stroke="#2F6B3F" stroke-width="1" opacity="0.5" fill="none"/>'
-    + '<rect x="14" y="20" width="72" height="66" rx="24" fill="#2F6B3F"/>'
-    + '<rect x="19" y="25" width="62" height="56" rx="20" fill="url(#xg1)" stroke="#8FBF8A" stroke-width="1.2"/>'
-    + '<ellipse cx="50" cy="32.5" rx="24" ry="7" fill="#FFFFFF" opacity="0.5"/>'
-    + '<rect x="27" y="37" width="46" height="28" rx="13" fill="#1D3B28" opacity="0.92"/>'
-    + '<circle cx="40" cy="51" r="11" fill="#F2C14E" opacity="0.105"/>'
-    + '<circle cx="60" cy="51" r="11" fill="#F2C14E" opacity="0.105"/>'
-    + '<circle cx="40" cy="51" r="9.4" fill="#F2C14E" opacity="0.21"/>'
-    + '<circle cx="60" cy="51" r="9.4" fill="#F2C14E" opacity="0.21"/>'
-    + '<circle cx="40" cy="51" r="7.8" fill="#F2C14E" opacity="0.45"/>'
-    + '<circle cx="60" cy="51" r="7.8" fill="#F2C14E" opacity="0.45"/>'
-    + '<circle cx="40" cy="51" r="6.4" fill="#F2C14E" filter="url(#xg2)"/>'
-    + '<circle cx="60" cy="51" r="6.4" fill="#F2C14E" filter="url(#xg2)"/>'
-    + '<circle cx="41.6" cy="49.2" r="1.9" fill="#FFFDF3"/><circle cx="61.6" cy="49.2" r="1.9" fill="#FFFDF3"/>'
-    + '<path d="M46.9 59.2 A3.4 3.4 0 0 0 53.1 59.2" stroke="#FBF7EC" stroke-width="1.7" fill="none" stroke-linecap="round"/>'
-    + '<circle cx="79" cy="71" r="5" fill="#D7E9CF" opacity="0.85"/>'
-    + '<circle cx="79" cy="71" r="9" fill="none" stroke="#C8552F" stroke-width="3.2"/>'
-    + '<path d="M85.2 76.2 L92.4 84.2 L89.4 86.8 L82.2 78.8 Z" fill="#C8552F"/>'
-    + '</svg>';
+  /* 官方勘探家头像；与桌面悬浮球使用同一资产。 */
+  var AVATAR_SVG = '<img src="/assets/avatar/forest-official.png?v=20261015official1" alt="森林小博士" loading="lazy">';
 
   /* ---------- 状态 ---------- */
   var S = {
@@ -68,15 +39,16 @@
     ['brandAvatarImg', 'heroAvatarImg'].forEach(function (id) {
       var img = $(id);
       if (!img) return;
-      img.src = '/assets/avatar/xiaoyin_' + state + '.svg';
+      img.dataset.state = state;
+      img.parentElement.dataset.state = state;
     });
   }
 
   function avatarFallback() {
-    // 资产缺失时退回内联 SVG（离线可用）
+    // 图片不可用时保留角色名称，避免无限重试。
     ['brandAvatar', 'heroAvatar'].forEach(function (id) {
       var box = $(id);
-      if (box && !box.querySelector('svg')) box.innerHTML = AVATAR_SVG;
+      if (box) { box.textContent = '森林'; box.setAttribute('aria-label', '森林小博士'); }
     });
   }
 

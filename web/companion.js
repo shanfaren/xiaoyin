@@ -13,7 +13,8 @@
     $('companionCancel').hidden=!s.recording;
     $('companionReplay').hidden=!lastAnswer||s.recording||s.busy;
     $('companionState').textContent=s.recording?'我在听，说完再点一下我':s.busy?'让我想一想…':state==='speaking'?'正在和你说话':state==='thinking'?'正在准备声音…':'点击我，说说你的发现';
-    $('characterStage').setAttribute('aria-label',s.recording?'点击森林小博士停止录音并发送':'点击森林小博士开始说话，左右拖动可以转动角色');
+    $('characterStage').setAttribute('aria-label',s.recording?'点击森林小博士停止录音并发送':'点击森林小博士开始说话');
+    $('characterStage').dataset.state=state;
   }
   function showCaption(text){$('companionCaption').textContent=text;$('companionCaption').scrollTop=0;}
   function setView(view){
@@ -26,6 +27,8 @@
   }
   function loadScene(){
     if(ready||loading)return;
+    // Display the approved character honestly until a usable mesh is available.
+    if($('characterStage').dataset.preview==='true')return;
     loading=true;
     function init(){try{createScene();ready=true;loading=false;$('modelLoading').hidden=true;resize();animate();}catch(e){failed();}}
     function failed(){loading=false;$('modelLoading').textContent='这台设备暂时无法显示立体角色，请切换“文字聊天”，语音功能仍可使用。';}
@@ -69,7 +72,7 @@
   $('companionCancel').addEventListener('click',function(){bridge().cancel();sync();});
   $('companionReplay').addEventListener('click',function(){bridge().replay(lastAnswer);sync();});
   $('companionPurpose').addEventListener('change',function(){bridge().profile(this.value);sync();});
-  $('characterStage').addEventListener('pointerdown',function(e){drag={x:e.clientX,angle:turned,moved:false};});
+  $('characterStage').addEventListener('pointerdown',function(e){if($('characterStage').dataset.preview==='true')return;drag={x:e.clientX,angle:turned,moved:false};});
   $('characterStage').addEventListener('pointermove',function(e){if(!drag)return;var dx=e.clientX-drag.x;if(Math.abs(dx)>8){drag.moved=true;turned=Math.max(-1.1,Math.min(1.1,drag.angle+dx*.008));}});
   function endDrag(){if(drag&&drag.moved)lastDrag=Date.now();drag=null;}
   window.addEventListener('pointerup',endDrag);window.addEventListener('pointercancel',endDrag);
