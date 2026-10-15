@@ -79,7 +79,9 @@ DEFAULTS = {
         "resource_id": "seed-tts-2.0",
         "api_key": "",
         "api_key_env": "TTS_API_KEY",
-        "voice": "zh_female_vv_uranus_bigtts",
+        "voice": "zh_male_taocheng_uranus_bigtts",
+        "speech_rate": -5,
+        "context_texts": ["请用清爽、明亮、亲切的年轻男声自然说话，像陪孩子探索森林的小伙伴。吐字清楚，语气轻快温和，避免低沉播音腔和夸张表演。"],
         "enabled": False
     },
     "limits": {
@@ -136,6 +138,7 @@ def _env_override(cfg):
         ('asr', 'api_key'): 'ASR_API_KEY',
         ('asr', 'app_id'): 'ASR_APP_ID',
         ('tts', 'api_key'): 'TTS_API_KEY',
+        ('tts', 'voice'): 'TTS_VOICE',
     }
     for path, env in env_map.items():
         val = os.environ.get(env)

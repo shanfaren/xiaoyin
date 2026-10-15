@@ -52,7 +52,7 @@ PROVIDER_REQUIRED = {
         ('api_key（X-Api-Key）', '大模型语音合成 2.0 的 API Key'),
         ('base_url', '默认 https://openspeech.bytedance.com/api/v3/tts/unidirectional'),
         ('resource_id', '固定 seed-tts-2.0（请求头 X-Api-Resource-Id）'),
-        ('voice', '音色 speaker，如 zh_female_vv_uranus_bigtts'),
+        ('voice', '音色 speaker，如 zh_male_taocheng_uranus_bigtts（青年男声）'),
     ],
 }
 
@@ -173,9 +173,12 @@ class TTSClient:
             'req_params': {
                 'text': text,
                 'speaker': speaker,
-                'audio_params': {'format': 'mp3', 'sample_rate': 16000, 'speech_rate': -10},
+                'audio_params': {'format': 'mp3', 'sample_rate': 16000,
+                                 'speech_rate': int(t.get('speech_rate', -10))},
             },
         }
+        if t.get('context_texts'):
+            body['req_params']['context_texts'] = list(t['context_texts'])
         headers = {
             'Content-Type': 'application/json',
             'X-Api-Key': str(t.get('api_key', '')),
