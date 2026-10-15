@@ -773,7 +773,7 @@ class Handler(BaseHTTPRequestHandler):
         if not text:
             return self._send_json({'ok': False, 'error': 'no_text', 'message': '未收到文本'}, 400)
         try:
-            res = STATE.tts.synthesize(text[:300], voice=body.get('voice'))
+            res = STATE.tts.synthesize(text[:300])
             return self._send_bytes(res['audio'], res.get('mime', 'audio/mpeg'))
         except NotConfigured as e:
             return self._send_json({'ok': False, 'error': 'not_configured', 'capability': 'tts',

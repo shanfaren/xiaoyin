@@ -401,32 +401,12 @@
       }).catch(function () {
         if (seq !== S.audioSeq) return;
         setStatus('');
-        browserSpeak(text, btn);
+        setAvatarState('idle');
+        addNotice('森林小博士的统一声音暂时无法播放，请点击“听一听”重试，并检查设备音量。');
       });
       return;
     }
-    browserSpeak(text, btn);
-  }
-
-  function browserSpeak(text, btn) {
-    if (!window.speechSynthesis) {
-      addNotice('这台设备暂时不能朗读。可以请老师配置语音合成后使用。');
-      return;
-    }
-    try {
-      var u = new SpeechSynthesisUtterance(text);
-      u.lang = 'zh-CN';
-      u.rate = 0.95;
-      u.onstart = function () { setStatus('播放中…（浏览器朗读）'); setAvatarState('speaking'); };
-      u.onend = function () { setStatus(''); setAvatarState('idle'); };
-      window.speechSynthesis.speak(u);
-      if (btn) {
-        btn.textContent = '⏹ 停止朗读';
-        btn.onclick = function () { stopAudio(); setStatus(''); btn.textContent = '🔊 听一听'; };
-      }
-    } catch (e) {
-      addNotice('浏览器朗读不可用，可以请老师配置语音合成。');
-    }
+    addNotice('森林小博士的统一声音暂不可用，请稍后重试。');
   }
 
   /* ---------- 照片分析 ---------- */

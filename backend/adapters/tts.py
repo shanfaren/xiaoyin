@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """语音合成（TTS）适配层。
 
-用户已确认将提供「语音合成 API」，但**尚未提供具体供应商与鉴权参数**，
-因此当前状态为「未配置」，界面必须明确显示未配置，不得声称已接通。
+森林小博士使用豆包语音合成2.0；角色音色、语速与风格由voice_profile统一锁定。
+密钥从私密配置或环境变量读取；未配置时明确报错，不切换系统声音。
 
 已实现的适配器：
 - volcengine：火山引擎语音合成（POST /api/v1/tts，Authorization: Bearer;<access_token>，
@@ -19,6 +19,7 @@ import urllib.request
 import uuid
 
 from .errors import NotConfigured, UpstreamError
+from ..voice_profile import VOICE_ID, SPEECH_RATE, STYLE
 
 PROVIDER_REQUIRED = {
     'volcengine': [
@@ -108,7 +109,7 @@ class TTSClient:
     def _guard(self):
         t = self.cfg['tts']
         if not t.get('enabled'):
-            raise NotConfigured('tts', '语音合成（TTS）未配置：无法进行语音播报，可先用浏览器朗读（备选）')
+            raise NotConfigured('tts', '森林小博士统一声音暂不可用，请检查语音服务配置后重试')
         miss = self.missing_params()
         if miss:
             raise NotConfigured('tts', '语音合成（TTS）参数不完整，缺少：' + '、'.join(miss))
@@ -167,18 +168,17 @@ class TTSClient:
         t = self.cfg['tts']
         url = str(t.get('base_url') or 'https://openspeech.bytedance.com/api/v3/tts/unidirectional').strip()
         resource_id = str(t.get('resource_id') or 'seed-tts-2.0').strip()
-        speaker = voice or t.get('voice', '')
+        speaker = VOICE_ID
         body = {
             'user': {'uid': 'xiaoyin'},
             'req_params': {
                 'text': text,
                 'speaker': speaker,
                 'audio_params': {'format': 'mp3', 'sample_rate': 16000,
-                                 'speech_rate': int(t.get('speech_rate', -10))},
+                                 'speech_rate': SPEECH_RATE},
             },
         }
-        if t.get('context_texts'):
-            body['req_params']['context_texts'] = list(t['context_texts'])
+        body['req_params']['context_texts'] = [STYLE]
         headers = {
             'Content-Type': 'application/json',
             'X-Api-Key': str(t.get('api_key', '')),
@@ -240,5 +240,5 @@ class TTSClient:
             'voice': t.get('voice') or '',
             'missing_params': self.missing_params(),
             'provider_requirements': PROVIDER_REQUIRED,
-            'browser_fallback': '浏览器 speechSynthesis 朗读为备选方案，中文音色依赖终端系统语音包，效果不稳定，仅作降级。',
+            'browser_fallback': '已关闭系统音色降级，所有终端仅使用森林小博士统一男声。',
         }

@@ -9,6 +9,7 @@
 import copy
 import json
 import os
+from .voice_profile import fixed_settings, public_profile
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONFIG_DIR = os.path.join(PROJECT_ROOT, 'config')
@@ -163,6 +164,8 @@ def _env_override(cfg):
     if str(vis.get('api_key') or '').strip() and str(vis.get('base_url') or '').strip() and vis.get('model'):
         vis['enabled'] = True
     tts = cfg['tts']
+    # 音色属于角色身份；历史文件、环境变量和单次请求均不能改换它。
+    tts.update(fixed_settings())
     if (tts.get('provider') == 'volcengine_seedtts' and str(tts.get('api_key') or '').strip()
             and str(tts.get('voice') or '').strip() and str(tts.get('base_url') or '').strip()):
         tts['enabled'] = True
@@ -257,10 +260,11 @@ def capability_report(cfg):
                 'label': '语音识别已配置' if asr_ready else '语音识别（ASR）未配置——语音对话链路不完整，可先用文字输入',
                 'provider': asr.get('provider') or '', 'model': asr.get('model') or ''},
         'tts': {'state': 'configured' if tts_ready else 'unconfigured',
-                'label': '语音合成已配置' if tts_ready else '语音合成（TTS）未配置——可先用浏览器朗读（备选，中文效果依赖系统语音）',
-                'provider': tts.get('provider') or '', 'voice': tts.get('voice') or ''},
+                'label': '统一男声音色已配置' if tts_ready else '统一男声音色暂不可用，请检查语音服务配置',
+                'provider': tts.get('provider') or '', 'voice': tts.get('voice') or '',
+                'profile': public_profile()},
         'browser_speech_fallback': {
             'asr': '浏览器原生语音识别仅部分浏览器支持（Chrome/Edge 桌面与部分安卓），需 HTTPS 与用户首次授权；微信内置浏览器通常不支持，不作为通用方案。',
-            'tts': '浏览器 speechSynthesis 朗读为备选方案，中文音色与可用性依赖终端系统语音包，效果不稳定。'
+            'tts': '已关闭系统音色降级，所有终端仅使用森林小博士统一男声。'
         }
     }
