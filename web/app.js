@@ -373,6 +373,29 @@
   }
 
   /* ---------- 语音合成播放 ---------- */
+  // Decode a copy for a time-indexed amplitude envelope. Never reroute audible audio,
+  // which would risk silence under mobile autoplay / suspended AudioContext rules.
+  function prepareSpeechEnvelope(blob,seq) {
+    S.speechEnvelope=null;
+    var Context=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+    if(!Context||!blob.arrayBuffer)return;
+    var context;
+    try{context=new Context(1,1,16000);}catch(e){return;}
+    blob.arrayBuffer().then(function(bytes){return context.decodeAudioData(bytes);}).then(function(audio){
+      if(seq!==S.audioSeq)return;
+      var hop=Math.max(1,Math.round(audio.sampleRate*.02)),count=Math.ceil(audio.length/hop),values=new Float32Array(count),peak=.01;
+      var data=audio.getChannelData(0);
+      for(var i=0;i<count;i++){var sum=0,start=i*hop,end=Math.min(data.length,start+hop);for(var j=start;j<end;j++)sum+=data[j]*data[j];values[i]=Math.sqrt(sum/Math.max(1,end-start));peak=Math.max(peak,values[i]);}
+      for(var k=0;k<count;k++)values[k]=values[k]<.008?0:Math.min(1,Math.pow(values[k]/peak,.6));
+      S.speechEnvelope={seq:seq,values:values,step:hop/audio.sampleRate};
+    }).catch(function(){/* Speech remains playable if envelope decoding is unavailable. */});
+  }
+  window.forestSpeechLevel=function(){
+    var a=S.audioEl,e=S.speechEnvelope;if(!a||a.paused||a.ended)return 0;
+    if(e&&e.seq===S.audioSeq)return e.values[Math.floor(a.currentTime/e.step)]||0;
+    // A playback-time fallback for browsers without offline decoding; pauses still close the mouth.
+    return .25+.28*Math.abs(Math.sin(a.currentTime*11));
+  };
   function speak(text, btn, ttsOk) {
     stopAudio();
     var seq = S.audioSeq;
@@ -395,6 +418,7 @@
         S.playbackAudio = a;
         a.src = url; a.muted = false;
         S.audioEl = a;
+        prepareSpeechEnvelope(blob,seq);
         a.onplaying = function () { if(seq===S.audioSeq){setStatus('播放中…'); setAvatarState('speaking');} };
         a.onended = function () { URL.revokeObjectURL(url); setStatus(''); setAvatarState('idle'); };
         return a.play();
@@ -643,7 +667,10 @@
       setStatus('');
       if(err.name==='NotReadableError')addNotice('麦克风正被其他应用占用，请结束其他录音后再按住说话。');
       else if(err.message==='recording_unsupported')addNotice('当前浏览器无法录音，请从右上角菜单选择“在浏览器打开”后使用语音。');
-      else addNotice('没有获得麦克风权限，请在微信或浏览器权限设置中允许录音，再按住说话。');
+      else if(err.name==='NotAllowedError'||err.name==='PermissionDeniedError'||err.name==='SecurityError')addNotice('录音被系统或浏览器拦截。请在设备设置中允许微信或浏览器使用麦克风，并允许本站录音；若没有权限提示，请从右上角菜单选择“在浏览器打开”。允许后刷新，再按住说话。');
+      else if(err.name==='NotFoundError'||err.name==='DevicesNotFoundError')addNotice('没有检测到可用的麦克风，请检查设备是否连接或启用了麦克风，再按住说话。');
+      else if(err.name==='AbortError')addNotice('麦克风启动被中断，请关闭其他录音或通话应用后重试。');
+      else addNotice('录音启动失败（'+String(err.name||'未知错误')+'）。请刷新重试；仍失败时，可从右上角菜单选择“在浏览器打开”后使用语音。');
     });
   }
 

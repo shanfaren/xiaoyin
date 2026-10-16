@@ -1,0 +1,22 @@
+{
+  "meshes": 21,
+  "vertices": 242330,
+  "triangles": 247038,
+  "dimensions": [
+    1.6490980386734009,
+    3.900414225223358,
+    1.4257494807243347
+  ],
+  "textures": 3,
+  "animations": [
+    "Idle",
+    "Listening",
+    "Speaking"
+  ],
+  "skinned": true,
+  "bytes": 7142944,
+  "sha256": "886e4c3e4fcca22e8e742c217f2e071cc3e94af6c43f13425df5b896b5e2d6c7",
+  "url": "/assets/models/forest-doctor.glb?v=886e4c3e4fcc",
+  "source": "Blender-5.2.2-user-owned-Hunyuan-reference",
+  "license": "User-authorized-character"
+}
