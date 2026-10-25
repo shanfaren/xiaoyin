@@ -25,7 +25,7 @@
     abort: null,
     followupVersion: 0,
     stopped: false,
-    audioSeq: 0, playbackAudio: null, audioURL:null, micStream: null, recordTimer: null, voiceVersion: 0
+    audioSeq: 0, playbackAudio: null, playbackUnlock: Promise.resolve(), audioURL:null, micStream: null, recordTimer: null, voiceVersion: 0
   };
 
   var $ = function (id) { return document.getElementById(id); };
@@ -64,7 +64,9 @@
     S.audioSeq++;
     if (S.audioEl) { try { S.audioEl.pause(); } catch (e) {} S.audioEl = null; }
     if (S.audioURL) { URL.revokeObjectURL(S.audioURL); S.audioURL=null; }
+    S.speechEnvelope = null;
     if (window.speechSynthesis) { try { window.speechSynthesis.cancel(); } catch (e) {} }
+    setAvatarState('idle');
   }
 
   function isWeChat() { return /MicroMessenger/i.test(navigator.userAgent); }
@@ -377,24 +379,19 @@
   // which would risk silence under mobile autoplay / suspended AudioContext rules.
   function prepareSpeechEnvelope(blob,seq) {
     S.speechEnvelope=null;
+    if (!window.ForestSpeechEnvelope) return;
     var Context=window.OfflineAudioContext||window.webkitOfflineAudioContext;
     if(!Context||!blob.arrayBuffer)return;
     var context;
     try{context=new Context(1,1,16000);}catch(e){return;}
     blob.arrayBuffer().then(function(bytes){return context.decodeAudioData(bytes);}).then(function(audio){
       if(seq!==S.audioSeq)return;
-      var hop=Math.max(1,Math.round(audio.sampleRate*.02)),count=Math.ceil(audio.length/hop),values=new Float32Array(count),peak=.01;
-      var data=audio.getChannelData(0);
-      for(var i=0;i<count;i++){var sum=0,start=i*hop,end=Math.min(data.length,start+hop);for(var j=start;j<end;j++)sum+=data[j]*data[j];values[i]=Math.sqrt(sum/Math.max(1,end-start));peak=Math.max(peak,values[i]);}
-      for(var k=0;k<count;k++)values[k]=values[k]<.008?0:Math.min(1,Math.pow(values[k]/peak,.6));
-      S.speechEnvelope={seq:seq,values:values,step:hop/audio.sampleRate};
+      S.speechEnvelope=window.ForestSpeechEnvelope.build(audio,seq);
     }).catch(function(){/* Speech remains playable if envelope decoding is unavailable. */});
   }
   window.forestSpeechLevel=function(){
-    var a=S.audioEl,e=S.speechEnvelope;if(!a||a.paused||a.ended)return 0;
-    if(e&&e.seq===S.audioSeq)return e.values[Math.floor(a.currentTime/e.step)]||0;
-    // A playback-time fallback for browsers without offline decoding; pauses still close the mouth.
-    return .25+.28*Math.abs(Math.sin(a.currentTime*11));
+    if(!window.ForestSpeechEnvelope)return 0;
+    return window.ForestSpeechEnvelope.level(S.audioEl,S.speechEnvelope,S.audioSeq);
   };
   function speak(text, btn, ttsOk) {
     stopAudio();
@@ -412,18 +409,41 @@
         return r.blob();
       }).then(function (blob) {
         if (seq !== S.audioSeq) return;
-        var url = URL.createObjectURL(blob);
-        S.audioURL=url;
-        var a = S.playbackAudio || new Audio();
-        S.playbackAudio = a;
-        a.src = url; a.muted = false;
-        S.audioEl = a;
         prepareSpeechEnvelope(blob,seq);
-        a.onplaying = function () { if(seq===S.audioSeq){setStatus('播放中…'); setAvatarState('speaking');} };
-        a.onended = function () { URL.revokeObjectURL(url); setStatus(''); setAvatarState('idle'); };
-        return a.play();
+        // Do not replace src while the same element is still playing the silent
+        // user-gesture unlock clip. Wait for that play() promise to settle first.
+        return Promise.resolve(S.playbackUnlock).then(function () {
+          if (seq !== S.audioSeq) return;
+          var url = URL.createObjectURL(blob);
+          S.audioURL=url;
+          var a = S.playbackAudio || new Audio();
+          S.playbackAudio = a;
+          a.src = url; a.muted = false;
+          S.audioEl = a;
+          a.onplaying = function () {
+            if(seq===S.audioSeq&&S.audioEl===a){setStatus('播放中…');setAvatarState('speaking');}
+          };
+          a.onpause = function () {
+            if(seq===S.audioSeq&&S.audioEl===a&&!a.ended){setStatus('');setAvatarState('idle');}
+          };
+          a.onended = function () {
+            if(seq!==S.audioSeq||S.audioEl!==a)return;
+            S.audioEl=null;S.speechEnvelope=null;
+            URL.revokeObjectURL(url);if(S.audioURL===url)S.audioURL=null;
+            setStatus('');setAvatarState('idle');
+          };
+          a.onerror = function () {
+            if(seq!==S.audioSeq||S.audioEl!==a)return;
+            S.audioEl=null;S.speechEnvelope=null;
+            URL.revokeObjectURL(url);if(S.audioURL===url)S.audioURL=null;
+            setStatus('');setAvatarState('idle');
+          };
+          return a.play();
+        });
       }).catch(function () {
         if (seq !== S.audioSeq) return;
+        S.audioEl=null;S.speechEnvelope=null;
+        if(S.audioURL){URL.revokeObjectURL(S.audioURL);S.audioURL=null;}
         setStatus('');
         setAvatarState('idle');
         addNotice('森林小博士的统一声音暂时无法播放，请点击“听一听”重试，并检查设备音量。');
@@ -572,10 +592,26 @@
   }
 
   function unlockPlayback() {
-    if (S.playbackAudio) return;
+    if (S.playbackAudio) return S.playbackUnlock;
     var a = new Audio(), url = URL.createObjectURL(wavBlob(new Float32Array(1600),16000));
     S.playbackAudio=a; a.src=url; a.muted=true;
-    a.play().then(function () { if (a.src===url) { a.pause(); a.currentTime=0; a.muted=false; } URL.revokeObjectURL(url); }).catch(function () { a.muted=false; URL.revokeObjectURL(url); });
+    S.playbackUnlock = new Promise(function (resolve) {
+      var finished = false;
+      function finish() {
+        if (finished) return;
+        finished = true;
+        try { a.pause(); a.currentTime=0; } catch (e) {}
+        a.muted=false;
+        URL.revokeObjectURL(url);
+        resolve();
+      }
+      a.play().then(finish, finish);
+      // Some embedded browsers leave a muted unlock play() pending without an
+      // output device. The element is still gesture-associated; release TTS
+      // after a short bounded delay instead of leaving the avatar in thinking.
+      setTimeout(finish, 200);
+    });
+    return S.playbackUnlock;
   }
 
   function normalizeAudio(blob) {
@@ -808,6 +844,24 @@
     replay: function (text) { unlockPlayback(); if(text) speak(text); },
     profile: function (id) { var b=document.querySelector('#interactionTabs [data-profile="'+id+'"]'); if(b) b.click(); }
   };
+  if (new URLSearchParams(location.search).get('avatarAudit') === '1') {
+    window.__forestSetAvatarState = setAvatarState;
+    window.__forestAudioState = function () {
+      var a=S.audioEl;
+      return {
+        hasAudio:!!a,
+        paused:a?a.paused:null,
+        ended:a?a.ended:null,
+        currentTime:a?a.currentTime:null,
+        readyState:a?a.readyState:null,
+        networkState:a?a.networkState:null,
+        error:a&&a.error?a.error.code:null,
+        envelopeSeq:S.speechEnvelope?S.speechEnvelope.seq:null,
+        audioSeq:S.audioSeq,
+        avatarState:AVATAR_STATE
+      };
+    };
+  }
 
   /* ---------- 初始化 ---------- */
   function bind() {

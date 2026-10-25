@@ -43,8 +43,8 @@ class DesktopApp:
     def activate_existing(self):
         if self.dialog is not None and self.dialog.hwnd:
             self.dialog.bring_to_front()
-        elif self.floating:
-            self.floating.show()
+        else:
+            self.open_dialog()
 
     # ------------------------------------------------ 状态
     def state_provider(self):
@@ -70,6 +70,7 @@ class DesktopApp:
             self.dialog = dlg
             try:
                 dlg.create()
+                print('[就绪] 聊天面板已显示：%d个教学入口，按住说话。' % len(dlg.profile_buttons), flush=True)
             except Exception as e:
                 print('[错误] 无法创建教师对话框：%s' % e)
                 self.dialog = None

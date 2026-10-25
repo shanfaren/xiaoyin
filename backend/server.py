@@ -44,6 +44,7 @@ import threading
 import time
 import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import unquote
 
 # 允许 `python backend/server.py` 直接运行
 if __package__ in (None, ''):
@@ -390,15 +391,23 @@ class Handler(BaseHTTPRequestHandler):
 
     # ---------------- 静态文件 ----------------
     def _serve_static(self, base, rel):
-        rel = rel.split('?')[0].lstrip('/')
-        if '..' in rel or rel.startswith('/'):
+        rel = unquote(rel.split('?', 1)[0]).lstrip('/')
+        base = os.path.abspath(base)
+        full = os.path.abspath(os.path.join(base, rel))
+        try:
+            inside_base = os.path.commonpath([base, full]) == base
+        except ValueError:
+            inside_base = False
+        if '..' in rel or not inside_base:
             return self._send_json({'ok': False, 'error': 'bad_path'}, 400)
-        return self._serve_file(os.path.join(base, rel))
+        return self._serve_file(full)
 
     def _serve_file(self, full):
         if not os.path.isfile(full):
             return self._send_json({'ok': False, 'error': 'not_found', 'file': os.path.basename(full)}, 404)
         ctype, _ = mimetypes.guess_type(full)
+        if full.lower().endswith('.webp'):
+            ctype = 'image/webp'
         ctype = ctype or 'application/octet-stream'
         if ctype.startswith('text/') or ctype in ('application/javascript', 'application/json'):
             ctype += '; charset=utf-8'

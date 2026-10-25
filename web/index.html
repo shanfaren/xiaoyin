@@ -5,9 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <title>森林小博士 · 云端版</title>
+<link rel="icon" href="data:,">
 <link rel="stylesheet" href="/static/style.css?v=20261015touch3">
 <link rel="stylesheet" href="/static/chat.css?v=20261015compact1">
-<link rel="stylesheet" href="/static/companion.css?v=20261016blender1">
+<link rel="stylesheet" href="/static/companion.css?v=20261025illustrated2">
 </head>
 <body class="chat-surface">
 <div id="app" class="app">
@@ -16,7 +17,7 @@
   <header class="topbar">
     <div class="brand">
       <div class="avatar" id="brandAvatar" aria-hidden="true">
-        <img src="/assets/avatar/forest-official.png?v=20261015official1" alt="森林小博士" id="brandAvatarImg">
+        <img src="/assets/avatar/forest-official.png?v=20261015official1" alt="森林小博士" id="brandAvatarImg" width="44" height="44">
       </div>
       <div class="brand-text">
         <div class="brand-name"><span id="charName">森林小博士</span><span class="ai-tag">AI 伙伴</span></div>
@@ -27,17 +28,17 @@
   </header>
 
   <nav class="view-switch" aria-label="选择显示方式">
-    <button type="button" id="view3d" aria-pressed="false">3D对话</button>
+    <button type="button" id="view3d" aria-pressed="false">角色对话</button>
     <button type="button" id="viewChat" aria-pressed="true">文字聊天</button>
   </nav>
   <section id="companion" class="companion" hidden aria-label="森林小博士形象语音伙伴">
     <div class="companion-cloud"><p class="companion-caption" id="companionCaption" aria-live="polite">你好呀，我们一起寻找大自然的隐身高手吧！</p></div>
-    <button type="button" class="character-stage" id="characterStage" aria-label="左右拖动旋转森林小博士，轻点开始说话"><span id="modelLoading">正在加载立体角色…</span></button>
+    <button type="button" class="character-stage" id="characterStage" aria-label="轻点森林小博士开始或停止说话"><span id="modelLoading">正在加载 2D 角色…</span></button>
     <div class="companion-bottom">
       <p class="companion-state" id="companionState" role="status">点击我，说说你的发现</p>
       <div class="companion-actions"><button type="button" id="companionTalk">按住说话</button><button type="button" id="companionReplay" hidden>重新朗读</button><button type="button" id="companionCancel" hidden>取消录音</button></div>
       <label class="companion-purpose">一起做什么 <select id="companionPurpose" aria-label="选择对话用途"><option value="qa">提问答疑</option><option value="hint">探究提示</option></select></label>
-      <p class="companion-note">左右拖动看看我 · 也可以切换文字聊天</p>
+      <p class="companion-note">轻点我，开始或停止说话 · 也可以切换文字聊天</p>
     </div>
   </section>
   <nav class="interaction-tabs" id="interactionTabs" aria-label="选择对话用途">
@@ -53,7 +54,7 @@
       <h1 class="welcome-heading">一起发现大自然的秘密</h1>
       <div class="hero">
         <div class="hero-avatar" id="heroAvatar" aria-hidden="true">
-          <img src="/assets/avatar/forest-official.png?v=20261015official1" alt="森林小博士" id="heroAvatarImg">
+          <img src="/assets/avatar/forest-official.png?v=20261015official1" alt="森林小博士" id="heroAvatarImg" width="56" height="56">
         </div>
         <div class="hero-bubble" id="welcomeText">你好呀！我是森林小博士，你的自然探究小伙伴。</div>
       </div>
@@ -146,8 +147,9 @@
 </div>
 <script src="/static/live-transcription.js?v=20261015hold1"></script>
 <script src="/static/hold-to-talk.js?v=20261015touch3"></script>
-<script src="/static/app.js?v=20261016blender1"></script>
-<script src="/static/real-character.js?v=20261016blender1"></script>
-<script src="/static/companion.js?v=20261016blender1"></script>
+<script src="/static/speech-envelope.js?v=20261025p0fix1"></script>
+<script src="/static/app.js?v=20261025p0fix1"></script>
+<script src="/static/2d-character.js?v=20261025p0fix1"></script>
+<script src="/static/companion.js?v=20261025illustrated1"></script>
 </body>
 </html>
