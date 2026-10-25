@@ -25,7 +25,8 @@
     abort: null,
     followupVersion: 0,
     stopped: false,
-    audioSeq: 0, playbackAudio: null, playbackUnlock: Promise.resolve(), audioURL:null, micStream: null, recordTimer: null, voiceVersion: 0
+    audioSeq: 0, playbackAudio: null, playbackUnlock: Promise.resolve(), audioURL:null, micStream: null, recordTimer: null, voiceVersion: 0,
+    voiceSheetActive: false, voiceUiTimer: null
   };
 
   var $ = function (id) { return document.getElementById(id); };
@@ -60,8 +61,78 @@
     $('statusText').textContent = text;
   }
 
+  function openVoiceSheet() {
+    if (S.voiceUiTimer) { clearTimeout(S.voiceUiTimer); S.voiceUiTimer = null; }
+    S.voiceSheetActive = true;
+    document.body.classList.add('voice-input-active');
+    document.body.classList.remove('voice-cancel-armed');
+    $('recLayer').hidden = false;
+    $('recLayer').dataset.state = 'recording';
+  }
+
+  function setVoiceSheetState(state, title, tip, transcript) {
+    if (!S.voiceSheetActive) return;
+    $('recLayer').dataset.state = state;
+    if (title) $('recTitle').textContent = title;
+    if (tip) $('recTip').textContent = tip;
+    if (typeof transcript === 'string') $('recTranscript').textContent = transcript;
+  }
+
+  function closeVoiceSheet() {
+    S.voiceSheetActive = false;
+    if (S.voiceUiTimer) { clearTimeout(S.voiceUiTimer); S.voiceUiTimer = null; }
+    document.body.classList.remove('voice-input-active', 'voice-cancel-armed');
+    $('recLayer').hidden = true;
+    $('recLayer').dataset.state = '';
+  }
+
+  function audioErrorMessage(err) {
+    var name = err && err.name || '';
+    var message = err && err.message || '';
+    if (name === 'EncodingError' || /decode|audio data/i.test(message)) {
+      return '这段录音没有读取成功，请靠近麦克风，按住说完一句话后再松开。';
+    }
+    if (name === 'NotReadableError') return '麦克风被其他应用占用了，请关闭录音或通话应用后重试。';
+    if (name === 'NotAllowedError' || name === 'PermissionDeniedError' || name === 'SecurityError') {
+      return '麦克风权限没有开启，请在浏览器设置中允许本站使用麦克风。';
+    }
+    if (name === 'NotFoundError' || name === 'DevicesNotFoundError') return '没有检测到可用的麦克风。';
+    return '录音处理失败，请靠近麦克风再试一次。';
+  }
+
+  function showVoiceError(message) {
+    if (!S.voiceSheetActive) return;
+    setVoiceSheetState('error', '没有听清楚', message, '');
+    S.voiceUiTimer = setTimeout(closeVoiceSheet, 1800);
+  }
+
+  function deliverVoiceTranscript(text) {
+    if (!text) return;
+    window.dispatchEvent(new CustomEvent('forest:transcript', {detail:{text:text}}));
+    if (!S.voiceSheetActive) {
+      if (S.cfg && S.cfg.voice && S.cfg.voice.auto_send) doChat({text:text,input_kind:'voice'});
+      else showAsrEdit(text);
+      return;
+    }
+    setVoiceSheetState('result', '我听到的是…', '文字已识别，即将发送', text);
+    if (S.cfg && S.cfg.voice && S.cfg.voice.auto_send) {
+      doChat({text:text,input_kind:'voice'});
+      S.voiceUiTimer = setTimeout(function () {
+        if (!S.voiceSheetActive || $('recLayer').dataset.state !== 'result') return;
+        closeVoiceSheet();
+      }, 850);
+    } else {
+      S.voiceUiTimer = setTimeout(function () {
+        closeVoiceSheet();
+        showAsrEdit(text);
+      }, 350);
+    }
+  }
+
   function stopAudio() {
     S.audioSeq++;
+    var wa = $('welcomeAudio');
+    if (wa) { try { wa.pause(); } catch (e) {} }
     if (S.audioEl) { try { S.audioEl.pause(); } catch (e) {} S.audioEl = null; }
     if (S.audioURL) { URL.revokeObjectURL(S.audioURL); S.audioURL=null; }
     S.speechEnvelope = null;
@@ -657,20 +728,21 @@
     }
     S.micPending = true;
     setStatus('正在开启麦克风，请允许录音权限…');
-    $('recTranscript').textContent='正在开启麦克风，请允许录音权限…';
-    $('recLayer').hidden=false;
+    openVoiceSheet();
+    setVoiceSheetState('requesting','正在开启麦克风…','请允许麦克风权限', '正在开启麦克风，请允许录音权限…');
     var intent=++S.recordIntent;
     requestMic().then(function (stream) {
       if(intent!==S.recordIntent){
         stream.getTracks().forEach(function(t){t.stop();});S.micPending=false;
+        closeVoiceSheet();
         addNotice('麦克风已准备好，请重新按住“按住说话”，说完松开。');return;
       }
       S.micPending = false;
       S.micStream = stream;
       var chunks = [];
-      $('recTranscript').textContent='正在听，请开始说话…';
+      setVoiceSheetState('recording','正在听你说…','松手发送，上移取消','正在听，请开始说话…');
       S.liveRecorder=window.ForestLiveTranscription&&window.ForestLiveTranscription.create(stream,function(text){
-        if(S.recording){$('recTranscript').textContent=text;window.dispatchEvent(new CustomEvent('forest:transcript',{detail:{text:text}}));}
+        if(S.recording){setVoiceSheetState('recording',null,null,text);window.dispatchEvent(new CustomEvent('forest:transcript',{detail:{text:text}}));}
       });
       var mr=null;
       if(window.MediaRecorder){try{mr=new MediaRecorder(stream);}catch(ignore){}}
@@ -683,7 +755,7 @@
         if(S.liveRecorder){S.liveRecorder.stop();S.liveRecorder=null;}
         stream.getTracks().forEach(function (t) { t.stop(); });
         if(S.recordTimer) clearTimeout(S.recordTimer);
-        S.recording=false; $('recLayer').hidden=true;
+        S.recording=false;
         S.micPending=false; S.micStream=null;
         var blob = new Blob(chunks, { type: mr.mimeType || 'audio/webm' });
         transcribe(blob);
@@ -692,14 +764,13 @@
       }
       S.recording = true;
       S.recordTimer=setTimeout(function () { if(S.recording) stopRecording(true); },60000);
-      $('recLayer').hidden = false;
       setStatus('正在听…');
       setAvatarState('listening');
     }).catch(function (err) {
       if(S.liveRecorder){S.liveRecorder.stop();S.liveRecorder=null;}
       if(S.micStream){S.micStream.getTracks().forEach(function(t){t.stop();});S.micStream=null;}
       S.micPending = false;
-      $('recLayer').hidden = true;
+      closeVoiceSheet();
       setStatus('');
       if(err.name==='NotReadableError')addNotice('麦克风正被其他应用占用，请结束其他录音后再按住说话。');
       else if(err.message==='recording_unsupported')addNotice('当前浏览器无法录音，请从右上角菜单选择“在浏览器打开”后使用语音。');
@@ -716,20 +787,21 @@
     if(S.liveRecorder){liveBlob=S.liveRecorder.stop();S.liveRecorder=null;}
     if(S.recordTimer) clearTimeout(S.recordTimer);
     S.recording = false;
-    $('recLayer').hidden = true;
     setStatus('');
+    if (send === false) closeVoiceSheet();
+    else setVoiceSheetState('recognizing','正在识别…','请稍等，马上显示文字','正在识别语音…');
     if(S.pcmOnly){
       S.pcmOnly=false;S.micPending=false;
       if(S.micStream)S.micStream.getTracks().forEach(function(t){t.stop();});S.micStream=null;
       if(send!==false){
         if(liveBlob&&liveBlob.size>11244)transcribe(liveBlob);
-        else addNotice('录音太短，请按住按钮说完一句话后再松开。');
+        else showVoiceError('录音太短，请按住按钮说完一句话后再松开。');
       }
       return;
     }
     if (S.speechRec) {
       var speech = S.speechRec;
-      if (send === false) { speech.onresult=null; speech.onend=null; speech.abort(); S.speechRec=null; S.micPending=false; setAvatarState('idle'); }
+      if (send === false) { speech.onresult=null; speech.onend=null; speech.abort(); S.speechRec=null; S.micPending=false; closeVoiceSheet(); setAvatarState('idle'); }
       else { S.micPending=true; speech.stop(); }
       return;
     }
@@ -747,9 +819,11 @@
 
   function transcribe(blob) {
     var version=++S.voiceVersion;
+    var fromVoiceSheet=S.voiceSheetActive;
     S.busy=true; $('btnStop').hidden=false;
     setStatus('识别中…');
     setAvatarState('listening');
+    if(fromVoiceSheet)setVoiceSheetState('recognizing','正在识别…','请稍等，马上显示文字','正在识别语音…');
     normalizeAudio(blob).then(function (prepared) {
     var fr = new FileReader();
     fr.onload = function () {
@@ -765,23 +839,33 @@
           setStatus('');
           var j = res.body || {};
           if (j.ok && j.text) {
-            if (S.cfg && S.cfg.voice && S.cfg.voice.auto_send) doChat({text:j.text,input_kind:'voice'});
+            if(fromVoiceSheet)deliverVoiceTranscript(j.text);
+            else if (S.cfg && S.cfg.voice && S.cfg.voice.auto_send) doChat({text:j.text,input_kind:'voice'});
             else showAsrEdit(j.text);
           } else if (j.error === 'not_configured') {
             addNotice('语音识别还没有配置好，所以我还听不懂录音。你可以直接打字告诉我。');
+            if(fromVoiceSheet)showVoiceError('语音识别还没有配置好，可以先直接打字告诉我。');
             fallbackSpeechRecognition('要不要试试手机自带的语音输入？');
           } else {
+            if(fromVoiceSheet)showVoiceError(j.message || '没有听清，请再说一次。');
             addError('没有听清楚', (j.message || '') + ' 再说一次试试？');
           }
         }).catch(function () {
           if(version!==S.voiceVersion) return;
           S.busy=false; $('btnStop').hidden=true;
           setStatus('');
+          if(fromVoiceSheet)showVoiceError('网络不太好，录音没有发出去，请再试一次。');
           addError('录音没有发出去', '网络不太好，请再试一次。');
         });
     };
     fr.readAsDataURL(prepared.blob);
-    }).catch(function (err) { if(version!==S.voiceVersion) return; S.busy=false; $('btnStop').hidden=true; setStatus(''); addNotice(err.message || '无法读取录音，请再录一次。'); });
+    }).catch(function (err) {
+      if(version!==S.voiceVersion) return;
+      S.busy=false; $('btnStop').hidden=true; setStatus('');
+      var message=audioErrorMessage(err);
+      if(fromVoiceSheet)showVoiceError(message);
+      addNotice(message);
+    });
   }
 
   function showAsrEdit(text) {
@@ -816,20 +900,30 @@
       };
       rec.onerror = function () {
         setStatus('');
+        showVoiceError('手机自带的语音输入没有成功，请再试一次。');
         addNotice('手机自带的语音输入没能用起来，请用文字告诉我吧。');
       };
       rec.onend = function () {
         if(S.recordTimer) clearTimeout(S.recordTimer);
         S.recording=false; S.micPending=false; S.speechRec=null;
-        $('recLayer').hidden=true; setStatus(''); setAvatarState('idle');
-        if(rec.forestText) showAsrEdit(rec.forestText);
+        setStatus(''); setAvatarState('idle');
+        if(rec.forestText) {
+          if(S.voiceSheetActive) deliverVoiceTranscript(rec.forestText);
+          else showAsrEdit(rec.forestText);
+        } else {
+          showVoiceError('没有听到清楚的话，请按住按钮再说一次。');
+        }
       };
       S.speechRec = rec;
       setStatus('正在听…（手机自带识别）');
       rec.start();
-      S.recording=true; $('recLayer').hidden=false; setAvatarState('listening');
+      openVoiceSheet();
+      setVoiceSheetState('recording','正在听你说…','松手发送，上移取消','正在听，请开始说话…');
+      S.recording=true;
+      setAvatarState('listening');
       S.recordTimer=setTimeout(function(){if(S.recording) stopRecording(true);},60000);
     } catch (e) {
+      closeVoiceSheet();
       addNotice(reason + ' 请用文字告诉我吧。');
     }
   }
@@ -865,6 +959,22 @@
 
   /* ---------- 初始化 ---------- */
   function bind() {
+    window.addEventListener('forest:hold-progress', function (event) {
+      var detail = event.detail || {};
+      document.body.classList.toggle('voice-cancel-armed', detail.phase === 'moving' && !!detail.cancelled);
+      if (detail.phase === 'moving' && S.voiceSheetActive) {
+        var title = detail.cancelled ? '松开取消' : '正在听你说…';
+        var tip = detail.cancelled ? '已进入取消区域' : '松手发送，上移取消';
+        setVoiceSheetState('recording', title, tip);
+      }
+      if (detail.phase === 'aborted') closeVoiceSheet();
+    });
+    window.addEventListener('keydown', function (event) {
+      if (event.key !== 'Escape' || !S.voiceSheetActive) return;
+      event.preventDefault();
+      if (S.recording || S.micPending) stopRecording(false);
+      else closeVoiceSheet();
+    });
     ['selectstart','contextmenu','dragstart'].forEach(function(name){
       document.addEventListener(name,function(e){
         var target=e.target;
@@ -979,13 +1089,51 @@
     });
   }
 
+  /* ---------- 扫码开场语音（自我介绍，去掉文字版） ---------- */
+  function setupWelcomeVoice() {
+    var audio = $('welcomeAudio');
+    var btn = $('btnWelcomePlay');
+    if (!audio) return;
+    if (btn) {
+      btn.addEventListener('click', function () { playWelcomeVoice(); });
+    }
+    tryAutoplayWelcomeVoice();
+  }
+
+  function playWelcomeVoice() {
+    var audio = $('welcomeAudio');
+    if (!audio) return;
+    stopAudio();
+    audio.muted = false;
+    var p = audio.play();
+    if (p && p.catch) p.catch(function () {});
+  }
+
+  function tryAutoplayWelcomeVoice() {
+    var audio = $('welcomeAudio');
+    if (!audio) return;
+    // 先以静音方式请求播放：多数手机浏览器允许静音自动播放，
+    // 成功后再取消静音，争取实现“扫码即播”的有声开场。
+    audio.muted = true;
+    var p = audio.play();
+    if (!p || !p.then) { audio.muted = false; return; }
+    p.then(function () {
+      try { audio.muted = false; audio.currentTime = 0; } catch (e) {}
+      var p2 = audio.play();
+      if (p2 && p2.catch) p2.catch(function () {});
+    }).catch(function () {
+      // 自动播放被浏览器拦截：保留“听小博士自我介绍”按钮，点一下即可播放。
+      audio.muted = false;
+    });
+  }
+
   function init() {
     bind();
     fetch('/api/client-config').then(function (r) { return r.json(); }).then(function (cfg) {
       S.cfg = cfg;
       $('charName').textContent = cfg.character.name;
       $('brandSub').textContent = '自然探究 AI 伙伴 · ' + cfg.course.stage_grade + cfg.course.subject;
-      $('welcomeText').textContent = cfg.character.welcome;
+      setupWelcomeVoice();
       renderStages(cfg.stages || [], S.stageId);
       renderVoiceCapability();
       var saved = null;

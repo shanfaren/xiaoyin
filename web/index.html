@@ -8,9 +8,9 @@
 <link rel="icon" href="data:,">
 <link rel="preload" href="/assets/character_optimized/pose_idle.webp?v=20261025optimized1" as="image" type="image/webp" crossorigin="anonymous" fetchpriority="high">
 <link rel="preload" href="/static/vendor/three.min.js" as="script" fetchpriority="high">
-<link rel="stylesheet" href="/static/style.css?v=20261015touch3">
+<link rel="stylesheet" href="/static/style.css?v=20261025voiceui1">
 <link rel="stylesheet" href="/static/chat.css?v=20261015compact1">
-<link rel="stylesheet" href="/static/companion.css?v=20261025fast1">
+<link rel="stylesheet" href="/static/companion.css?v=20261025voiceui1">
 </head>
 <body class="chat-surface">
 <audio id="welcomeAudio" src="/assets/audio/森林小博士_自我介绍.mp3?v=20261025intro1" preload="auto" playsinline></audio>
@@ -36,7 +36,7 @@
   </nav>
   <section id="companion" class="companion" hidden aria-label="森林小博士形象语音伙伴">
     <div class="companion-cloud"><p class="companion-caption" id="companionCaption" aria-live="polite">你好呀，我们一起寻找大自然的隐身高手吧！</p></div>
-    <button type="button" class="character-stage" id="characterStage" aria-label="轻点森林小博士开始或停止说话"><span id="modelLoading">正在加载 2D 角色…</span></button>
+    <button type="button" class="character-stage" id="characterStage" aria-label="长按下方按住说话按钮开始语音输入"><span id="modelLoading">正在加载 2D 角色…</span></button>
     <div class="companion-bottom">
       <p class="companion-state" id="companionState" role="status">点击我，说说你的发现</p>
       <div class="companion-actions"><button type="button" id="companionTalk">按住说话</button><button type="button" id="companionReplay" hidden>重新朗读</button><button type="button" id="companionCancel" hidden>取消录音</button></div>
@@ -140,11 +140,11 @@
   </footer>
 
   <!-- 录音浮层 -->
-  <div class="rec-layer" id="recLayer" hidden>
+  <div class="rec-layer" id="recLayer" role="dialog" aria-label="语音输入" hidden>
     <div class="rec-card">
-      <div class="rec-wave"><i></i><i></i><i></i><i></i><i></i></div>
-      <div class="rec-title">正在听你说…</div>
-      <div class="rec-tip">松开结束录音，文字会在识别后校正</div>
+      <div class="rec-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="rec-title" id="recTitle">正在听你说…</div>
+      <div class="rec-tip" id="recTip">松手发送，上移取消</div>
       <div id="recTranscript" aria-live="polite">正在听，请开始说话…</div>
       <button class="btn danger big" id="btnRecStop">停止录音</button>
       <button class="btn ghost" id="btnRecCancel">取消发送</button>
@@ -153,10 +153,10 @@
 
 </div>
 <script src="/static/live-transcription.js?v=20261015hold1"></script>
-<script src="/static/hold-to-talk.js?v=20261015touch3"></script>
+<script src="/static/hold-to-talk.js?v=20261025voiceui1"></script>
 <script src="/static/speech-envelope.js?v=20261025p0fix1"></script>
-<script src="/static/app.js?v=20261025p0fix1"></script>
+<script src="/static/app.js?v=20261025voiceui1"></script>
 <script src="/static/2d-character.js?v=20261025optimized1"></script>
-<script src="/static/companion.js?v=20261025fast1"></script>
+<script src="/static/companion.js?v=20261025voiceui1"></script>
 </body>
 </html>

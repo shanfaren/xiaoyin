@@ -73,6 +73,16 @@ class Cdp {
 const audioPreload = String.raw`
 (() => {
   const nativeFetch = window.fetch.bind(window);
+  window.__avatarAuditVibrationCount = 0;
+  try {
+    Object.defineProperty(navigator, 'vibrate', {
+      configurable: true,
+      value: () => {
+        window.__avatarAuditVibrationCount += 1;
+        return true;
+      }
+    });
+  } catch {}
 
   function makeWav(longPlayback) {
     const sampleRate = 16000;
@@ -120,6 +130,13 @@ const audioPreload = String.raw`
 
   window.fetch = async function (input, init) {
     const url = typeof input === 'string' ? input : input.url;
+    if (url.includes('/api/asr')) {
+      window.__avatarAuditAsrCount = (window.__avatarAuditAsrCount || 0) + 1;
+      return new Response(JSON.stringify({ ok: true, text: '竹节虫为什么像树枝？' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
     if (url.includes('/api/tts')) {
       window.__avatarAuditTtsCount = (window.__avatarAuditTtsCount || 0) + 1;
       return new Response(makeWav(window.__avatarAuditTtsCount >= 3), {
@@ -134,6 +151,7 @@ const audioPreload = String.raw`
       json.voice.tts = json.voice.tts || {};
       json.voice.tts.state = 'configured';
       json.voice.auto_play = true;
+      json.voice.auto_send = false;
       return new Response(JSON.stringify(json), {
         status: response.status,
         headers: { 'Content-Type': 'application/json' }
@@ -156,6 +174,8 @@ const chrome = spawn(CHROME, [
   '--disable-backgrounding-occluded-windows',
   '--disable-renderer-backgrounding',
   '--autoplay-policy=no-user-gesture-required',
+  '--use-fake-ui-for-media-stream',
+  '--use-fake-device-for-media-stream',
   '--mute-audio',
   '--disable-audio-output',
   '--disable-features=AudioServiceSandbox,AudioServiceOutOfProcess',
@@ -184,6 +204,7 @@ try {
   await cdp.send('Page.enable');
   await cdp.send('Runtime.enable');
   await cdp.send('Log.enable');
+  await cdp.send('Network.enable');
   await cdp.send('Page.bringToFront');
   await cdp.send('Emulation.setFocusEmulationEnabled', { enabled: true });
   await cdp.send('Page.addScriptToEvaluateOnNewDocument', { source: audioPreload });
@@ -262,6 +283,60 @@ try {
     .map((entry) => ({ name: entry.name, bytes: entry.transferSize, duration: Math.round(entry.duration) }))`);
   assert.ok(characterResourceAudit.length >= 1, 'optimized idle character was not requested');
   assert.ok(characterResourceAudit.every((entry) => entry.bytes < 250000), 'an unoptimized character image was loaded');
+
+  const talkButton = await evaluate(`(() => {
+    const box = document.getElementById('companionTalk').getBoundingClientRect();
+    return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+  })()`);
+  async function pressTalk() {
+    await evaluate(`document.getElementById('companionTalk').dispatchEvent(new PointerEvent('pointerdown', {
+      bubbles: true, pointerId: 101, pointerType: 'mouse', button: 0,
+      clientX: ${talkButton.x}, clientY: ${talkButton.y}
+    }))`);
+    await waitFor(`document.body.classList.contains('voice-input-active') && !document.getElementById('recLayer').hidden`, 4000);
+    await waitFor(`window.forestConversation.snapshot().recording === true`, 5000);
+    assert.equal(await evaluate(`window.__avatarAuditVibrationCount`), 1);
+  }
+  async function releaseTalk(y = talkButton.y) {
+    await evaluate(`window.dispatchEvent(new PointerEvent('pointerup', {
+      bubbles: true, pointerId: 101, pointerType: 'mouse', button: 0,
+      clientX: ${talkButton.x}, clientY: ${y}
+    }))`);
+  }
+
+  await pressTalk();
+  await capture('desktop_voice_recording.png');
+  await evaluate(`document.getElementById('companionTalk').dispatchEvent(new PointerEvent('pointermove', {
+    bubbles: true, pointerId: 101, pointerType: 'mouse', button: 0,
+    clientX: ${talkButton.x}, clientY: ${talkButton.y - 90}
+  }))`);
+  await waitFor(`document.body.classList.contains('voice-cancel-armed')`);
+  await capture('desktop_voice_cancel.png');
+  const asrBeforeCancel = await evaluate(`window.__avatarAuditAsrCount || 0`);
+  await releaseTalk(talkButton.y - 90);
+  await waitFor(`document.getElementById('recLayer').hidden`);
+  assert.equal(await evaluate(`document.getElementById('asrEdit').hidden`), true);
+
+  await evaluate(`document.getElementById('companionTalk').dispatchEvent(new PointerEvent('pointerdown', {
+    bubbles: true, pointerId: 101, pointerType: 'mouse', button: 0,
+    clientX: ${talkButton.x}, clientY: ${talkButton.y}
+  }))`);
+  await waitFor(`window.forestConversation.snapshot().recording === true`, 5000);
+  assert.equal(await evaluate(`window.__avatarAuditVibrationCount`), 2);
+  await sleep(700);
+  await releaseTalk();
+  await waitFor(`!document.getElementById('asrEdit').hidden`, 10000);
+  const voiceTranscript = await evaluate(`document.getElementById('asrText').value`);
+  assert.equal(voiceTranscript, '竹节虫为什么像树枝？');
+  const voiceGestureAudit = {
+    vibrationCount: await evaluate(`window.__avatarAuditVibrationCount`),
+    asrRequests: await evaluate(`window.__avatarAuditAsrCount || 0`),
+    asrBeforeCancel,
+    transcript: voiceTranscript
+  };
+  await capture('desktop_voice_transcript.png');
+  await evaluate(`document.getElementById('btnAsrCancel').click()`);
+  await waitFor(`document.getElementById('asrEdit').hidden`);
 
   await setState('idle');
   await capture('desktop_idle.png');
@@ -382,17 +457,44 @@ try {
   assert.ok(mobileLayout.stage.width > 300 && mobileLayout.stage.height > 300, 'mobile character stage is too small');
   await capture('mobile_idle.png');
 
+  const mobileTalk = await evaluate(`(() => {
+    const box = document.getElementById('companionTalk').getBoundingClientRect();
+    return { x: box.left + box.width / 2, y: box.top + box.height / 2 };
+  })()`);
+  await evaluate(`document.getElementById('companionTalk').dispatchEvent(new PointerEvent('pointerdown', {
+    bubbles: true, pointerId: 202, pointerType: 'mouse', button: 0,
+    clientX: ${mobileTalk.x}, clientY: ${mobileTalk.y}
+  }))`);
+  await waitFor(`document.body.classList.contains('voice-input-active') && !document.getElementById('recLayer').hidden`, 4000);
+  await waitFor(`window.forestConversation.snapshot().recording === true`, 5000);
+  assert.equal(await evaluate(`window.__avatarAuditVibrationCount`), 1);
+  await capture('mobile_voice_recording.png');
+  await evaluate(`document.getElementById('companionTalk').dispatchEvent(new PointerEvent('pointermove', {
+    bubbles: true, pointerId: 202, pointerType: 'mouse', button: 0,
+    clientX: ${mobileTalk.x}, clientY: ${mobileTalk.y - 90}
+  }))`);
+  await waitFor(`document.body.classList.contains('voice-cancel-armed')`);
+  await evaluate(`window.dispatchEvent(new PointerEvent('pointerup', {
+    bubbles: true, pointerId: 202, pointerType: 'mouse', button: 0,
+    clientX: ${mobileTalk.x}, clientY: ${mobileTalk.y - 90}
+  }))`);
+  await waitFor(`document.getElementById('recLayer').hidden`);
+
   await evaluate(`window.__forestSpeechLevelOriginal = window.forestSpeechLevel; window.forestSpeechLevel = () => 0.82;`);
   await setState('speaking');
   await capture('mobile_speaking.png');
 
   const auditEvents = cdp.events
-    .filter((event) => event.method === 'Runtime.exceptionThrown' || event.method === 'Log.entryAdded')
+    .filter((event) => event.method === 'Runtime.exceptionThrown' ||
+      event.method === 'Log.entryAdded' ||
+      (event.method === 'Network.responseReceived' && event.params.response?.status >= 400))
     .map((event) => ({ method: event.method, params: event.params }));
   for (const event of auditEvents) {
     if (event.method === 'Runtime.exceptionThrown') {
       errors.push(event.params.exceptionDetails?.exception?.description || event.params.exceptionDetails?.text);
-    } else if (event.params.entry.level === 'error') {
+    } else if (event.method === 'Network.responseReceived') {
+      errors.push(`${event.params.response.status} ${event.params.response.url}`);
+    } else if (event.params.entry.level === 'error' && !event.params.entry.text.startsWith('Failed to load resource:')) {
       errors.push(event.params.entry.text);
     }
   }
@@ -410,6 +512,7 @@ try {
     backgroundAudit,
     modelReadyMs,
     characterResourceAudit,
+    voiceGestureAudit,
     errors
   }, null, 2));
 
