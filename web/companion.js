@@ -12,7 +12,7 @@
     $('companionCancel').hidden=!s.recording;
     $('companionReplay').hidden=!lastAnswer||s.recording||s.busy;
     $('companionState').textContent=s.recording?'我在听，松开结束录音':s.busy?'让我想一想…':state==='speaking'?'正在和你说话':state==='thinking'?'正在准备声音…':'按住下方按钮，说说你的发现';
-    $('characterStage').setAttribute('aria-label',s.recording?'点击森林小博士取消当前录音':'长按下方“按住说话”按钮开始语音输入');
+    $('characterStage').setAttribute('aria-label',s.recording?'点击森林小博士取消当前录音':'轻点听自我介绍，长按下方按钮开始语音输入');
     $('characterStage').dataset.state=state;
   }
   function showCaption(text){$('companionCaption').textContent=text;$('companionCaption').scrollTop=0;}
@@ -79,7 +79,8 @@
     var s=snapshot();
     if(s.recording){if(bridge())bridge().cancel();sync();return;}
     if(s.busy){$('btnStop').click();sync();return;}
-    showCaption('长按下方“按住说话”，说完后松开，我就会发送。');
+    showCaption('我是森林小博士。想提问时，请长按下方“按住说话”，说完后再松开。');
+    if(bridge()&&bridge().welcome)bridge().welcome();
   }
   window.bindForestHold($('companionTalk'),function(){return bridge().holdStart();},function(cancel){bridge().holdEnd(cancel);});
   $('characterStage').addEventListener('click',talk);

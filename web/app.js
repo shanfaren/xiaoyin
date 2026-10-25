@@ -67,6 +67,7 @@
     document.body.classList.add('voice-input-active');
     document.body.classList.remove('voice-cancel-armed');
     $('recLayer').hidden = false;
+    $('recLayer').setAttribute('aria-hidden', 'false');
     $('recLayer').dataset.state = 'recording';
   }
 
@@ -83,6 +84,7 @@
     if (S.voiceUiTimer) { clearTimeout(S.voiceUiTimer); S.voiceUiTimer = null; }
     document.body.classList.remove('voice-input-active', 'voice-cancel-armed');
     $('recLayer').hidden = true;
+    $('recLayer').setAttribute('aria-hidden', 'true');
     $('recLayer').dataset.state = '';
   }
 
@@ -935,6 +937,7 @@
     cancel: function () { stopRecording(false); },
     holdStart:function(){return startRecording();},
     holdEnd:function(cancel){stopRecording(!cancel);},
+    welcome: function () { playWelcomeVoice(); },
     replay: function (text) { unlockPlayback(); if(text) speak(text); },
     profile: function (id) { var b=document.querySelector('#interactionTabs [data-profile="'+id+'"]'); if(b) b.click(); }
   };

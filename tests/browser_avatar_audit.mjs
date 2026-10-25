@@ -74,6 +74,14 @@ const audioPreload = String.raw`
 (() => {
   const nativeFetch = window.fetch.bind(window);
   window.__avatarAuditVibrationCount = 0;
+  window.__avatarAuditMicRequests = 0;
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    const nativeGetUserMedia = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+    navigator.mediaDevices.getUserMedia = function (constraints) {
+      window.__avatarAuditMicRequests += 1;
+      return nativeGetUserMedia(constraints);
+    };
+  }
   try {
     Object.defineProperty(navigator, 'vibrate', {
       configurable: true,
@@ -269,6 +277,27 @@ try {
   await waitForPage();
   const modelReadyMs = Date.now() - navigationStarted;
   assert.equal(await evaluate(`document.visibilityState`), 'visible', 'headless page is not visible');
+  await waitFor(`(() => {
+    const audio = document.getElementById('welcomeAudio');
+    return audio && (!audio.paused || audio.currentTime > 0 || audio.ended);
+  })()`, 5000);
+  const initialVoiceAudit = await evaluate(`(() => {
+    const layer = document.getElementById('recLayer');
+    const welcome = document.getElementById('welcomeAudio');
+    return {
+      layerHidden: layer.hidden,
+      layerDisplay: getComputedStyle(layer).display,
+      voiceActive: document.body.classList.contains('voice-input-active'),
+      micRequests: window.__avatarAuditMicRequests,
+      welcomePaused: welcome.paused,
+      welcomeTime: welcome.currentTime
+    };
+  })()`);
+  assert.equal(initialVoiceAudit.layerHidden, true);
+  assert.equal(initialVoiceAudit.layerDisplay, 'none');
+  assert.equal(initialVoiceAudit.voiceActive, false);
+  assert.equal(initialVoiceAudit.micRequests, 0);
+  assert.ok(initialVoiceAudit.welcomeTime > 0 || !initialVoiceAudit.welcomePaused);
   await waitFor(`performance.getEntriesByType('resource').some((entry) => entry.name.includes('background_candidates'))`);
   const backgroundAudit = await evaluate(`({
     backgroundImage: getComputedStyle(document.getElementById('companion')).backgroundImage,
@@ -296,6 +325,7 @@ try {
     await waitFor(`document.body.classList.contains('voice-input-active') && !document.getElementById('recLayer').hidden`, 4000);
     await waitFor(`window.forestConversation.snapshot().recording === true`, 5000);
     assert.equal(await evaluate(`window.__avatarAuditVibrationCount`), 1);
+    assert.equal(await evaluate(`window.__avatarAuditMicRequests`), 1);
   }
   async function releaseTalk(y = talkButton.y) {
     await evaluate(`window.dispatchEvent(new PointerEvent('pointerup', {
@@ -323,6 +353,7 @@ try {
   }))`);
   await waitFor(`window.forestConversation.snapshot().recording === true`, 5000);
   assert.equal(await evaluate(`window.__avatarAuditVibrationCount`), 2);
+  assert.equal(await evaluate(`window.__avatarAuditMicRequests`), 2);
   await sleep(700);
   await releaseTalk();
   await waitFor(`document.getElementById('recLayer').dataset.state === 'result'`, 10000);
@@ -514,6 +545,7 @@ try {
     backgroundAudit,
     modelReadyMs,
     characterResourceAudit,
+    initialVoiceAudit,
     voiceGestureAudit,
     errors
   }, null, 2));

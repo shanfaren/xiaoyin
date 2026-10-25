@@ -10,7 +10,7 @@
 <link rel="preload" href="/static/vendor/three.min.js" as="script" fetchpriority="high">
 <link rel="stylesheet" href="/static/style.css?v=20261025voiceui1">
 <link rel="stylesheet" href="/static/chat.css?v=20261015compact1">
-<link rel="stylesheet" href="/static/companion.css?v=20261025voiceui1">
+<link rel="stylesheet" href="/static/companion.css?v=20261025voiceui3">
 </head>
 <body class="chat-surface">
 <audio id="welcomeAudio" src="/assets/audio/森林小博士_自我介绍.mp3?v=20261025intro1" preload="auto" playsinline></audio>
@@ -36,7 +36,7 @@
   </nav>
   <section id="companion" class="companion" hidden aria-label="森林小博士形象语音伙伴">
     <div class="companion-cloud"><p class="companion-caption" id="companionCaption" aria-live="polite">你好呀，我们一起寻找大自然的隐身高手吧！</p></div>
-    <button type="button" class="character-stage" id="characterStage" aria-label="长按下方按住说话按钮开始语音输入"><span id="modelLoading">正在加载 2D 角色…</span></button>
+    <button type="button" class="character-stage" id="characterStage" aria-label="轻点听自我介绍，长按下方按钮开始语音输入"><span id="modelLoading">正在加载 2D 角色…</span></button>
     <div class="companion-bottom">
       <p class="companion-state" id="companionState" role="status">点击我，说说你的发现</p>
       <div class="companion-actions"><button type="button" id="companionTalk">按住说话</button><button type="button" id="companionReplay" hidden>重新朗读</button><button type="button" id="companionCancel" hidden>取消录音</button></div>
@@ -140,7 +140,7 @@
   </footer>
 
   <!-- 录音浮层 -->
-  <div class="rec-layer" id="recLayer" role="dialog" aria-label="语音输入" hidden>
+  <div class="rec-layer" id="recLayer" role="dialog" aria-label="语音输入" aria-hidden="true" hidden>
     <div class="rec-card">
       <div class="rec-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
       <div class="rec-title" id="recTitle">正在听你说…</div>
@@ -155,8 +155,8 @@
 <script src="/static/live-transcription.js?v=20261015hold1"></script>
 <script src="/static/hold-to-talk.js?v=20261025voiceui1"></script>
 <script src="/static/speech-envelope.js?v=20261025p0fix1"></script>
-<script src="/static/app.js?v=20261025voiceui2"></script>
+<script src="/static/app.js?v=20261025voiceui3"></script>
 <script src="/static/2d-character.js?v=20261025optimized1"></script>
-<script src="/static/companion.js?v=20261025voiceui1"></script>
+<script src="/static/companion.js?v=20261025voiceui3"></script>
 </body>
 </html>
