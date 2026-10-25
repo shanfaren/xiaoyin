@@ -1,0 +1,15 @@
+{
+  "profile_id": "forest-doctor-male-v1",
+  "provider": "volcengine_seedtts",
+  "model": "seed-tts-2.0",
+  "resource_id": "seed-tts-2.0",
+  "voice": "zh_male_taocheng_uranus_bigtts",
+  "speech_rate": -5,
+  "context_texts": [
+    "请用清爽、明亮、亲切的年轻男声自然说话，像陪孩子探索森林的小伙伴。吐字清楚，语气轻快温和，避免低沉播音腔和夸张表演。"
+  ],
+  "sample_rate": 16000,
+  "format": "mp3",
+  "standard_text": "小朋友们好，我是森林小博士。让我们仔细观察，一起寻找动物的隐身秘密吧！",
+  "text": "你好呀！我是森林小博士，你的自然探究小伙伴。今天我们一起走进大森林，去找会隐身的小动物吧！"
+}
