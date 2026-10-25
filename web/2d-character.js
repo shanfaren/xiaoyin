@@ -70,6 +70,7 @@
   window.loadForestCharacter2D = function (THREE) {
     return new Promise(function (resolve, reject) {
       var loader = new THREE.TextureLoader();
+      if (loader.setCrossOrigin) loader.setCrossOrigin('anonymous');
       var textures = {};
       var keys = Object.keys(POSES);
       var failed = 0;

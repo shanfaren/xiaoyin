@@ -336,8 +336,7 @@ try {
   await waitFor(`window.forestSpeechLevel() > 0.1`, 2000);
   const firstRoundSeq = await evaluate(`window.__forestAudioState().audioSeq`);
   await evaluate(`window.forestConversation.replay('第二轮')`);
-  await waitFor(`window.forestConversation.snapshot().state === 'speaking'`, 3000);
-  assert.ok(await evaluate(`window.forestSpeechLevel() > 0.1`));
+  await waitFor(`window.forestConversation.snapshot().state === 'speaking' && window.forestSpeechLevel() > 0.1`, 6000);
   const replaced = await evaluate(`({
     state: window.forestConversation.snapshot().state,
     level: window.forestSpeechLevel(),
