@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>森林小博士 · 2D动画验收</title>
+<style>body{margin:0;background:#fff9f0;color:#294a38;font:16px system-ui}header{padding:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}button,select,input{font:inherit;border:1px solid #becfc0;border-radius:8px;padding:9px;background:#fff;user-select:none}#stage{height:calc(100vh - 155px);min-height:420px;background:linear-gradient(#e9f3eb,#fff8ed)}canvas{display:block}p{margin:8px 16px;font-size:14px}label{display:inline-flex;align-items:center;gap:6px}#error{color:#a22}</style>
+<header><strong>2D动画验收</strong><select id="state" aria-label="动作状态"><option value="idle">自然站立</option><option value="speaking">语音讲解</option><option value="listening">侧耳倾听（新增）</option><option value="thinking">思考</option></select><button id="sample">播放统一男声试听</button><button id="close">面部特写</button><label>口型检查<input id="jaw" type="range" min="0" max="1" step="0.01" value="0"></label><button id="point">指向线索（新增）</button></header>
+<div id="stage"></div><p id="status">正在加载…</p><p id="error"></p>
+<audio id="audio" src="/assets/audio/森林小博士_统一标准试听.mp3" preload="auto"></audio>
+<script src="/static/vendor/three.min.js"></script><script src="/static/speech-envelope.js?v=20261025mouth5"></script><script src="/static/2d-character.js?v=20261025mouth5"></script>
+<script>
+(async function(){
+const $=id=>document.getElementById(id),T=window.THREE;
+const scene=new T.Scene(),camera=new T.PerspectiveCamera(32,1,.1,40),renderer=new T.WebGLRenderer({antialias:true,alpha:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setClearColor(0,0);renderer.outputColorSpace=T.SRGBColorSpace;
+$('stage').appendChild(renderer.domElement);let close=false,env=null,last=0,manual=false;
+window.forestSpeechLevel=()=>manual?Number($('jaw').value):window.ForestSpeechEnvelope.level($('audio'),env,1);
+const role=await window.loadForestCharacter2D(T);scene.add(role.root);
+const resize=()=>{const r=$('stage').getBoundingClientRect();camera.aspect=r.width/r.height;camera.position.set(0,close?3.12:2.15,close?2.2:7);camera.lookAt(0,close?3.12:2,0);camera.updateProjectionMatrix();renderer.setSize(r.width,r.height);};
+new ResizeObserver(resize).observe($('stage'));resize();
+$('close').onclick=()=>{close=!close;$('close').textContent=close?'全身视图':'面部特写';resize();};
+$('jaw').oninput=()=>{manual=true;$('audio').pause();$('state').value='speaking';};
+$('state').onchange=()=>{manual=false;role.setPose(null);$('jaw').value=0;$('audio').pause();};
+$('point').onclick=()=>{manual=true;$('jaw').value=0;$('state').value='speaking';role.setPose('point');};
+$('sample').onclick=async()=>{try{manual=false;role.setPose(null);$('state').value='speaking';const C=window.OfflineAudioContext||window.webkitOfflineAudioContext;if(!env){const bytes=await(await fetch($('audio').src)).arrayBuffer();const ctx=new C(1,1,16000);env=window.ForestSpeechEnvelope.build(await ctx.decodeAudioData(bytes),1);}$('audio').currentTime=0;await $('audio').play();}catch(e){$('error').textContent=e.message;}};
+$('audio').onended=()=>{$('state').value='idle';};
+function draw(t){requestAnimationFrame(draw);const dt=last?Math.min((t-last)/1000,.05):0;last=t;role.update($('state').value,t/1000,false,dt);renderer.render(scene,camera);const s=role.animationState();$('status').textContent='姿势：'+s.visiblePose+' · 开口：'+s.jawLevel.toFixed(2)+' · 切换：'+s.transition.toFixed(2)+' · 共'+s.poses.length+'个姿势';}requestAnimationFrame(draw);
+})().catch(e=>document.getElementById('error').textContent=e.message);
+</script></html>

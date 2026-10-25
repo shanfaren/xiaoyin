@@ -53,6 +53,7 @@ test('mouth level closes on pause, end, stale audio sequence, and out-of-range t
   assert.equal(speech.level({ paused: false, ended: true, currentTime: 0.1 }, envelope, 9), 0);
   assert.equal(speech.level({ paused: false, ended: false, currentTime: 0.1 }, envelope, 10), 0);
   assert.equal(speech.level({ paused: false, ended: false, currentTime: 2 }, envelope, 9), 0);
+  assert.equal(speech.level({ paused: false, ended: false, muted:true, currentTime: 0.1 }, envelope, 9), 0);
 });
 
 test('production fallback never invents a fixed-frequency talking mouth', () => {

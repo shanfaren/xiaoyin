@@ -34,7 +34,7 @@
   }
 
   function level(audioElement, envelope, activeSeq) {
-    if (!audioElement || audioElement.paused || audioElement.ended) return 0;
+    if (!audioElement || audioElement.paused || audioElement.ended || audioElement.muted || audioElement.volume === 0) return 0;
     if (!envelope || envelope.seq !== activeSeq || !envelope.values || !envelope.step) return 0;
     var time = Number(audioElement.currentTime);
     if (!isFinite(time) || time < 0) return 0;

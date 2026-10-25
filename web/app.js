@@ -464,6 +464,10 @@
   }
   window.forestSpeechLevel=function(){
     if(!window.ForestSpeechEnvelope)return 0;
+    var welcome=$('welcomeAudio');
+    if(welcome&&!welcome.paused&&!welcome.ended&&S.welcomeEnvelope){
+      return window.ForestSpeechEnvelope.level(welcome,S.welcomeEnvelope,1);
+    }
     return window.ForestSpeechEnvelope.level(S.audioEl,S.speechEnvelope,S.audioSeq);
   };
   function speak(text, btn, ttsOk) {
@@ -1097,16 +1101,34 @@
     var audio = $('welcomeAudio');
     var btn = $('btnWelcomePlay');
     if (!audio) return;
+    audio.addEventListener('playing', function () { setAvatarState('speaking'); });
+    audio.addEventListener('pause', function () { if (!audio.ended) setAvatarState('idle'); });
+    audio.addEventListener('ended', function () { setAvatarState('idle'); });
+    prepareWelcomeEnvelope(audio);
     if (btn) {
       btn.addEventListener('click', function () { playWelcomeVoice(); });
     }
     tryAutoplayWelcomeVoice();
   }
 
+  function prepareWelcomeEnvelope(audio) {
+    if (S.welcomeEnvelope || S.welcomeEnvelopeLoading || !window.ForestSpeechEnvelope) return;
+    var Context=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+    if(!Context)return;
+    var context;
+    try{context=new Context(1,1,16000);}catch(e){return;}
+    S.welcomeEnvelopeLoading=fetch(audio.currentSrc||audio.src)
+      .then(function(r){if(!r.ok)throw new Error('welcome audio');return r.arrayBuffer();})
+      .then(function(bytes){return context.decodeAudioData(bytes);})
+      .then(function(buffer){S.welcomeEnvelope=window.ForestSpeechEnvelope.build(buffer,1);})
+      .catch(function(){S.welcomeEnvelope=null;});
+  }
+
   function playWelcomeVoice() {
     var audio = $('welcomeAudio');
     if (!audio) return;
     stopAudio();
+    if (audio.ended) audio.currentTime = 0;
     audio.muted = false;
     var p = audio.play();
     if (p && p.catch) p.catch(function () {});
