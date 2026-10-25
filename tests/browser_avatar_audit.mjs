@@ -325,6 +325,9 @@ try {
   assert.equal(await evaluate(`window.__avatarAuditVibrationCount`), 2);
   await sleep(700);
   await releaseTalk();
+  await waitFor(`document.getElementById('recLayer').dataset.state === 'result'`, 10000);
+  assert.equal(await evaluate(`document.getElementById('recTranscript').textContent`), '竹节虫为什么像树枝？');
+  await capture('desktop_voice_transcript.png');
   await waitFor(`!document.getElementById('asrEdit').hidden`, 10000);
   const voiceTranscript = await evaluate(`document.getElementById('asrText').value`);
   assert.equal(voiceTranscript, '竹节虫为什么像树枝？');
@@ -334,7 +337,6 @@ try {
     asrBeforeCancel,
     transcript: voiceTranscript
   };
-  await capture('desktop_voice_transcript.png');
   await evaluate(`document.getElementById('btnAsrCancel').click()`);
   await waitFor(`document.getElementById('asrEdit').hidden`);
 

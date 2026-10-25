@@ -125,7 +125,7 @@
       S.voiceUiTimer = setTimeout(function () {
         closeVoiceSheet();
         showAsrEdit(text);
-      }, 350);
+      }, 650);
     }
   }
 
