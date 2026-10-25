@@ -23,7 +23,7 @@ function vector3() {
   };
 }
 
-function createThreeStub() {
+function createThreeStub(TextureLoaderOverride) {
   class Group {
     constructor() {
       this.children = [];
@@ -79,7 +79,7 @@ function createThreeStub() {
     PlaneGeometry: class PlaneGeometry {},
     ShaderMaterial,
     MeshBasicMaterial: BasicMaterial,
-    TextureLoader,
+    TextureLoader: TextureLoaderOverride || TextureLoader,
     Vector2: class Vector2 {
       constructor(x, y) {
         this.x = x;
@@ -89,7 +89,7 @@ function createThreeStub() {
   };
 }
 
-async function createCharacter() {
+async function createCharacter(TextureLoaderOverride) {
   const source = fs.readFileSync(CHARACTER_PATH, 'utf8');
   const deterministicMath = Object.create(Math);
   deterministicMath.random = () => 0.45;
@@ -102,7 +102,7 @@ async function createCharacter() {
     Math: deterministicMath
   });
   vm.runInContext(source, context, { filename: CHARACTER_PATH });
-  return window.loadForestCharacter2D(createThreeStub());
+  return window.loadForestCharacter2D(createThreeStub(TextureLoaderOverride));
 }
 
 function blinkUniforms(character) {
@@ -161,6 +161,27 @@ test('pose changes use one aligned mesh so two full-body images cannot overlap',
   const thinkTexture = poseMeshes[0].material.uniforms.u_map.value;
   assert.notEqual(thinkTexture, idleTexture, 'thinking pose did not replace the texture');
   assert.equal(poseMeshes[0].material.uniforms.u_opacity.value, 1);
+});
+
+test('idle pose resolves the character before slower alternate poses finish', async () => {
+  const pending = {};
+  class DeferredTextureLoader {
+    load(url, onLoad) {
+      pending[url] = onLoad;
+    }
+  }
+
+  const loading = createCharacter(DeferredTextureLoader);
+  await Promise.resolve();
+  assert.ok(Object.keys(pending).some((url) => /pose_idle/.test(url)), 'idle pose request was not started');
+  assert.equal(Object.keys(pending).length, 1, 'alternate poses block the first render');
+
+  pending[Object.keys(pending)[0]]({ colorSpace: null, anisotropy: 0 });
+  const result = await Promise.race([
+    loading.then(() => 'ready'),
+    new Promise((resolve) => setTimeout(() => resolve('timeout'), 40))
+  ]);
+  assert.equal(result, 'ready');
 });
 
 test('animation speed is based on elapsed time rather than render rate', async () => {

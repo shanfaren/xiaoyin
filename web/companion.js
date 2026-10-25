@@ -28,14 +28,16 @@
     if(ready||loading)return;
     loading=true;
     $('modelLoading').hidden=false;$('modelLoading').textContent='正在加载 2D 角色…';
+    var slowHint=setTimeout(function(){if(!ready&&loading)$('modelLoading').textContent='网络较慢，角色仍在加载…';},4500);
     function script(url){return new Promise(function(resolve,reject){var s=document.createElement('script');s.src=url;s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});}
     (window.THREE?Promise.resolve():script('/static/vendor/three.min.js'))
       .then(function(){return window.loadForestCharacter2D(window.THREE);})
       .then(function(character){
+        clearTimeout(slowHint);
         if(new URLSearchParams(location.search).get('avatarAudit')==='1')window.__forestCharacter2D=character;
         createScene(character);ready=true;loading=false;$('modelLoading').hidden=true;resize();if(active)animate();
       })
-      .catch(function(e){loading=false;console.error('Character load failed',e);$('modelLoading').textContent='角色加载失败，点上方“角色对话”重试，或切换“文字聊天”。';});
+      .catch(function(e){clearTimeout(slowHint);loading=false;console.error('Character load failed',e);$('modelLoading').textContent='角色加载失败，请刷新页面或切换“文字聊天”。';});
   }
   function createScene(character){
     var T=window.THREE,scene=new T.Scene(),camera=new T.PerspectiveCamera(32,1,.1,80);

@@ -1,7 +1,7 @@
 .view-switch{display:flex;flex:none;gap:3px;align-self:center;background:#eee9e0;border-radius:10px;padding:3px;margin:0 0 12px;z-index:2}
 .view-switch button{border:0;border-radius:8px;background:transparent;color:#77766c;padding:8px 24px;font:inherit;font-size:14px;cursor:pointer}
 .view-switch button[aria-pressed=true]{background:#fffdf8;color:#355341;box-shadow:0 1px 5px #493b2310;font-weight:650}
-.companion{position:relative;flex:1;min-height:0;isolation:isolate;overflow:hidden;background-color:#dff4d3;background-image:url('/assets/background_candidates/森林探险_自然绘本背景_v1.webp');background-position:center center;background-size:cover;background-repeat:no-repeat;border-radius:28px 28px 0 0;display:flex;flex-direction:column;align-items:center}
+.companion{position:relative;flex:1;min-height:0;isolation:isolate;overflow:hidden;background-color:#dff4d3;background-image:url('/assets/background_candidates/森林探险_自然绘本背景_v1.webp?v=20261025bg1');background-position:center center;background-size:cover;background-repeat:no-repeat;border-radius:28px 28px 0 0;display:flex;flex-direction:column;align-items:center}
 .companion:before,.companion:after{display:none}
 .companion-heading{text-align:center;position:absolute;top:clamp(10px,3vh,30px);z-index:1;pointer-events:none}
 .companion-kicker{font-size:11px;letter-spacing:3px;color:#8a927e}

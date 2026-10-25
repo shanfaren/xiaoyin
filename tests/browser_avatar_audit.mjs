@@ -243,8 +243,10 @@ try {
     deviceScaleFactor: 1,
     mobile: false
   });
+  const navigationStarted = Date.now();
   await cdp.send('Page.navigate', { url: BASE_URL });
   await waitForPage();
+  const modelReadyMs = Date.now() - navigationStarted;
   assert.equal(await evaluate(`document.visibilityState`), 'visible', 'headless page is not visible');
   await waitFor(`performance.getEntriesByType('resource').some((entry) => entry.name.includes('background_candidates'))`);
   const backgroundAudit = await evaluate(`({
@@ -255,6 +257,11 @@ try {
   assert.match(backgroundAudit.backgroundImage, /background_candidates/);
   assert.equal(backgroundAudit.backgroundSize, 'cover');
   assert.equal(backgroundAudit.oldForestLoaded, false);
+  const characterResourceAudit = await evaluate(`performance.getEntriesByType('resource')
+    .filter((entry) => entry.name.includes('/assets/character_optimized/'))
+    .map((entry) => ({ name: entry.name, bytes: entry.transferSize, duration: Math.round(entry.duration) }))`);
+  assert.ok(characterResourceAudit.length >= 1, 'optimized idle character was not requested');
+  assert.ok(characterResourceAudit.every((entry) => entry.bytes < 250000), 'an unoptimized character image was loaded');
 
   await setState('idle');
   await capture('desktop_idle.png');
@@ -402,6 +409,8 @@ try {
     stopped,
     mobileLayout,
     backgroundAudit,
+    modelReadyMs,
+    characterResourceAudit,
     errors
   }, null, 2));
 

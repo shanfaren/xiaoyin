@@ -164,13 +164,13 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _send_bytes(self, data, ctype, status=200, filename=None, cache=False):
+    def _send_bytes(self, data, ctype, status=200, filename=None, cache=False, cache_seconds=3600):
         self.send_response(status)
         self.send_header('Content-Type', ctype)
         self.send_header('Content-Length', str(len(data)))
         if filename:
             self.send_header('Content-Disposition', f'attachment; filename="{filename}"')
-        self.send_header('Cache-Control', 'public, max-age=3600' if cache else 'no-store')
+        self.send_header('Cache-Control', f'public, max-age={int(cache_seconds)}' if cache else 'no-store')
         self.end_headers()
         self.wfile.write(data)
 
@@ -414,9 +414,15 @@ class Handler(BaseHTTPRequestHandler):
         with open(full, 'rb') as f:
             data = f.read()
         cache = not full.endswith('.html')
+        normalized = full.replace('\\', '/').lower()
+        cache_seconds = 86400
+        if '/assets/character_optimized/' in normalized or '/assets/background_candidates/' in normalized:
+            cache_seconds = 31536000
+        elif full.lower().endswith(('.js', '.css')):
+            cache_seconds = 604800
         if ctype.startswith('video/'):
             return self._send_video(data, ctype)
-        return self._send_bytes(data, ctype, cache=cache)
+        return self._send_bytes(data, ctype, cache=cache, cache_seconds=cache_seconds)
 
     def _send_video(self, data, ctype):
         """Single byte-range support for mobile browsers and looping playback."""

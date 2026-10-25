@@ -2,10 +2,10 @@
   'use strict';
   // 2D 立绘角色：基于定妆图的 4 个姿势，用着色器做嘴部变形 + 交叉淡化
   var POSES = {
-    idle:      '/assets/character/pose_idle.png',
-    talkRight: '/assets/character/pose_talk_right.png',
-    openBoth:  '/assets/character/pose_open_both.png',
-    think:     '/assets/character/pose_think.png'
+    idle:      '/assets/character_optimized/pose_idle.webp?v=20261025optimized1',
+    talkRight: '/assets/character_optimized/pose_talk_right.webp?v=20261025optimized1',
+    openBoth:  '/assets/character_optimized/pose_open_both.webp?v=20261025optimized1',
+    think:     '/assets/character_optimized/pose_think.webp?v=20261025optimized1'
   };
 
   // 顶点着色器只移动嘴唇附近的少量网格，避免整块下巴或面颊被拉动。
@@ -72,29 +72,41 @@
       var loader = new THREE.TextureLoader();
       var textures = {};
       var keys = Object.keys(POSES);
-      var pending = keys.length;
       var failed = 0;
+      var built = false;
+      var secondaryStarted = false;
 
-      keys.forEach(function (key) {
+      function loadPose(key) {
         loader.load(POSES[key], function (tex) {
           tex.colorSpace = THREE.SRGBColorSpace;
           tex.anisotropy = 4;
           textures[key] = tex;
-          pending--;
-          if (pending === 0) build();
+          if (!built) {
+            built = true;
+            build();
+          }
+          if (key === 'idle') loadSecondaryPoses();
         }, undefined, function (err) {
           console.warn('2d-character pose load fail', key, err);
           failed++;
-          pending--;
-          if (pending === 0) build();
+          if (key === 'idle') loadSecondaryPoses();
+          if (failed === keys.length && !built) {
+            reject(new Error('All poses failed to load'));
+          }
         });
-      });
+      }
+
+      function loadSecondaryPoses() {
+        if (secondaryStarted) return;
+        secondaryStarted = true;
+        keys.forEach(function (key) {
+          if (key !== 'idle') loadPose(key);
+        });
+      }
+
+      loadPose('idle');
 
       function build() {
-        if (failed === keys.length) {
-          reject(new Error('All poses failed to load'));
-          return;
-        }
         var group = new THREE.Group();
         var W = 5.0, H = 7.5;
         var geo = new THREE.PlaneGeometry(W, H, 48, 72);
