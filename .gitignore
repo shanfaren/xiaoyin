@@ -29,6 +29,8 @@ tools/_doc_raw.txt
 *.mp3
 *.ogg
 *.m4a
+!assets/audio/
+!assets/audio/*.mp3
 uploads/
 photos/
 
