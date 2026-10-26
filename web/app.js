@@ -1016,7 +1016,7 @@
     S.mediaRecorder = null;
   }
 
-  function transcribe(blob) {
+  function transcribe(blob, retried) {
     var version=++S.voiceVersion;
     var fromVoiceSheet=S.voiceSheetActive;
     S.asrPending=true;S.busy=true; $('btnStop').hidden=false;
@@ -1053,6 +1053,10 @@
           }
         }).catch(function () {
           if(version!==S.voiceVersion) return;
+          if(!retried){
+            setTimeout(function(){ if(version===S.voiceVersion) transcribe(blob, true); }, 700);
+            return;
+          }
           S.asrPending=false;S.busy=false; $('btnStop').hidden=true;
           setStatus('');
           if(fromVoiceSheet)showVoiceError('网络不太好，录音没有发出去，请再试一次。');

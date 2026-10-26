@@ -190,31 +190,39 @@ class StreamingSession:
         self.text = ''
         self.closed = False
         self.error = ''
+        self.lock = threading.Lock()
 
     def push(self, pcm):
-        if self.closed:
+        with self.lock:
+            if self.closed:
+                return self.text
+            if pcm:
+                try:
+                    self.ws.send_binary(_pack(MSG_AUDIO_ONLY_REQUEST, FLAG_NONE, pcm))
+                except Exception as e:
+                    self.error = str(e)
+                    self.closed = True
+                    return self.text
+            self._drain()
             return self.text
-        if pcm:
-            self.ws.send_binary(_pack(MSG_AUDIO_ONLY_REQUEST, FLAG_NONE, pcm))
-        self._drain()
-        return self.text
 
     def finish(self):
-        if self.closed:
-            return self.text
-        try:
-            self.ws.send_binary(_pack(MSG_AUDIO_ONLY_REQUEST, FLAG_LAST, b''))
-        except Exception:
-            pass
-        deadline = time.time() + 20
-        while not self.closed and time.time() < deadline:
+        with self.lock:
+            if self.closed:
+                return self.text
             try:
-                self._read_one(min(5, max(0.2, deadline - time.time())))
-            except Exception as e:
-                self.error = str(e)
-                break
-        self.close()
-        return self.text
+                self.ws.send_binary(_pack(MSG_AUDIO_ONLY_REQUEST, FLAG_LAST, b''))
+            except Exception:
+                pass
+            deadline = time.time() + 20
+            while not self.closed and time.time() < deadline:
+                try:
+                    self._read_one(min(5, max(0.2, deadline - time.time())))
+                except Exception as e:
+                    self.error = str(e)
+                    break
+            self.close()
+            return self.text
 
     def _drain(self):
         while True:

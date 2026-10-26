@@ -69,7 +69,7 @@ from backend.knowledge import followups
 from backend.session import RateLimiter, SessionStore  # noqa: E402
 
 VERSION = '1.0.0'
-RELEASE = '20261026cloudfix1'
+RELEASE = '20261026asr1'
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WEB_DIR = os.path.join(PROJECT_ROOT, 'web')
 ASSETS_DIR = os.path.join(PROJECT_ROOT, 'assets')
@@ -190,7 +190,11 @@ class Handler(BaseHTTPRequestHandler):
         for k, v in (extra_headers or {}).items():
             self.send_header(k, v)
         self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.wfile.write(body)
+        except (ConnectionAbortedError, BrokenPipeError, ConnectionResetError):
+            # 浏览器在松手/取消时主动断开预览请求，属于预期行为，不应记为 500。
+            pass
 
     def _send_bytes(self, data, ctype, status=200, filename=None, cache=False, cache_seconds=3600):
         self.send_response(status)
@@ -200,7 +204,10 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header('Content-Disposition', f'attachment; filename="{filename}"')
         self.send_header('Cache-Control', f'public, max-age={int(cache_seconds)}' if cache else 'no-store')
         self.end_headers()
-        self.wfile.write(data)
+        try:
+            self.wfile.write(data)
+        except (ConnectionAbortedError, BrokenPipeError, ConnectionResetError):
+            pass
 
     def _read_json(self):
         length = int(self.headers.get('Content-Length') or 0)
