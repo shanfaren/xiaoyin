@@ -35,6 +35,7 @@
   GET  /api/admin/qrcode.svg     生成二维码 SVG
 """
 import argparse
+import base64
 import json
 import mimetypes
 import os
@@ -43,6 +44,7 @@ import sys
 import threading
 import time
 import traceback
+import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote
 
@@ -55,6 +57,7 @@ from backend import config as cfgmod            # noqa: E402
 from backend import netutil                     # noqa: E402
 from backend import qr_encode, qr_image         # noqa: E402
 from backend.adapters.asr import ASRClient      # noqa: E402
+from backend.adapters.streaming_asr import StreamingASRClient  # noqa: E402
 from backend.adapters.errors import NotConfigured, RateLimited, UpstreamError  # noqa: E402
 from backend.adapters.llm import LLMClient, summarize  # noqa: E402
 from backend.adapters.tts import TTSClient      # noqa: E402
@@ -83,6 +86,8 @@ class AppState:
         self.cancel_lock = threading.RLock()
         self.started_at = time.time()
         self.suggestion_cache = {}
+        self.streams = {}
+        self.stream_lock = threading.RLock()
         self._build_clients()
 
     def _build_clients(self):
@@ -90,6 +95,7 @@ class AppState:
             msgs, mode='student', stage_id=None))
         self.vision = VisionClient(self.cfg)
         self.asr = ASRClient(self.cfg)
+        self.streaming_asr = StreamingASRClient(self.cfg)
         self.tts = TTSClient(self.cfg)
 
     def reload(self):
@@ -370,6 +376,14 @@ class Handler(BaseHTTPRequestHandler):
             return self._send_json({'ok': True, 'message': '已请求停止生成', 'session_id': sid})
         if path == '/api/asr':
             return self._asr()
+        if path == '/api/asr/stream/start':
+            return self._asr_stream_start()
+        if path == '/api/asr/stream/chunk':
+            return self._asr_stream_chunk()
+        if path == '/api/asr/stream/finish':
+            return self._asr_stream_finish()
+        if path == '/api/asr/stream/cancel':
+            return self._asr_stream_cancel()
         if path == '/api/tts':
             return self._tts()
         if path == '/api/vision':
@@ -813,6 +827,72 @@ class Handler(BaseHTTPRequestHandler):
         except UpstreamError as e:
             return self._send_json({'ok': False, 'error': 'upstream_error',
                                     'message': cfgmod.redact(str(e))}, 502)
+
+    # ---- 流式语音识别会话（供按住说话时的实时文字） ----
+    def _asr_stream_start(self):
+        if not STATE.streaming_asr.is_ready():
+            return self._send_json({'ok': False, 'error': 'not_configured',
+                                    'message': '流式语音识别未配置'}, 501)
+        try:
+            session = STATE.streaming_asr.open()
+        except NotConfigured as e:
+            return self._send_json({'ok': False, 'error': 'not_configured',
+                                    'message': str(e.message)}, 501)
+        except UpstreamError as e:
+            return self._send_json({'ok': False, 'error': 'upstream_error',
+                                    'message': cfgmod.redact(str(e))}, 502)
+        sid = uuid.uuid4().hex
+        with STATE.stream_lock:
+            now = time.time()
+            for old in [k for k, v in STATE.streams.items() if now - v.get('ts', now) > 300]:
+                STATE.streams.pop(old, None)
+            STATE.streams[sid] = {'session': session, 'ts': now}
+        return self._send_json({'ok': True, 'stream_id': sid})
+
+    def _asr_stream_chunk(self):
+        body = self._read_json()
+        sid = body.get('stream_id') or ''
+        try:
+            pcm = base64.b64decode(body.get('audio_base64') or '')
+        except Exception:
+            return self._send_json({'ok': False, 'error': 'bad_audio'}, 400)
+        with STATE.stream_lock:
+            item = STATE.streams.get(sid)
+        if not item:
+            return self._send_json({'ok': False, 'error': 'not_found'}, 404)
+        try:
+            text = item['session'].push(pcm)
+            return self._send_json({'ok': True, 'text': text})
+        except UpstreamError as e:
+            with STATE.stream_lock:
+                STATE.streams.pop(sid, None)
+            return self._send_json({'ok': False, 'error': 'upstream_error',
+                                    'message': cfgmod.redact(str(e))}, 502)
+
+    def _asr_stream_finish(self):
+        body = self._read_json()
+        sid = body.get('stream_id') or ''
+        with STATE.stream_lock:
+            item = STATE.streams.pop(sid, None)
+        if not item:
+            return self._send_json({'ok': False, 'error': 'not_found'}, 404)
+        try:
+            return self._send_json({'ok': True, 'text': item['session'].finish()})
+        except UpstreamError as e:
+            return self._send_json({'ok': False, 'error': 'upstream_error',
+                                    'message': cfgmod.redact(str(e))}, 502)
+
+    def _asr_stream_cancel(self):
+        body = self._read_json()
+        sid = body.get('stream_id') or ''
+        with STATE.stream_lock:
+            item = STATE.streams.pop(sid, None)
+        if item:
+            try:
+                item['session'].close()
+            except Exception:
+                pass
+        return self._send_json({'ok': True})
 
     def _tts(self):
         body = self._read_json()

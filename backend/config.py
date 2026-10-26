@@ -82,6 +82,13 @@ DEFAULTS = {
         "app_id_env": "ASR_APP_ID",
         "enabled": False
     },
+    "streaming_asr": {
+        "enabled": False,
+        "base_url": "wss://openspeech.bytedance.com/api/v3/sauc/bigmodel",
+        "resource_id": "volc.seedasr.sauc.duration",
+        "api_key": "",
+        "app_id": ""
+    },
     "tts": {
         "provider": "volcengine_seedtts",
         "base_url": "https://openspeech.bytedance.com/api/v3/tts/unidirectional",
@@ -151,6 +158,11 @@ def _env_override(cfg):
         ('asr', 'api_key'): 'ASR_API_KEY',
         ('asr', 'app_id'): 'ASR_APP_ID',
         ('asr', 'resource_id'): 'ASR_RESOURCE_ID',
+        ('streaming_asr', 'enabled'): 'STREAMING_ASR_ENABLED',
+        ('streaming_asr', 'base_url'): 'STREAMING_ASR_BASE_URL',
+        ('streaming_asr', 'resource_id'): 'STREAMING_ASR_RESOURCE_ID',
+        ('streaming_asr', 'api_key'): 'STREAMING_ASR_API_KEY',
+        ('streaming_asr', 'app_id'): 'STREAMING_ASR_APP_ID',
         ('tts', 'api_key'): 'TTS_API_KEY',
         ('tts', 'voice'): 'TTS_VOICE',
     }

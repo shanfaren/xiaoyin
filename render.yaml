@@ -29,3 +29,9 @@ services:
         value: "volc.seedasr.auc"
       - key: ASR_API_KEY
         sync: false
+      - key: STREAMING_ASR_ENABLED
+        value: "true"
+      - key: STREAMING_ASR_BASE_URL
+        value: "wss://openspeech.bytedance.com/api/v3/sauc/bigmodel"
+      - key: STREAMING_ASR_RESOURCE_ID
+        value: "volc.seedasr.sauc.duration"
