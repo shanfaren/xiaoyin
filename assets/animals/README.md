@@ -1,0 +1,56 @@
+# 动物照片来源与许可
+
+每张照片的作者、来源页和许可如下；点开课堂图片也可查看。
+
+- stick-camouflage-leaf.webp — Pavel Kirillov from St.Petersburg, Russia — CC BY-SA 2.0 — https://commons.wikimedia.org/wiki/File:Amazing_stick_bug_camouflage_(20942676094).jpg — https://creativecommons.org/licenses/by-sa/2.0
+- stick-orthomeria-fern.webp — Kramthenik27 — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:Walking_stick_insect.jpg — https://creativecommons.org/licenses/by-sa/4.0
+- stick-ramulus-artemis.webp — Drägüs — CC BY-SA 3.0 — https://commons.wikimedia.org/wiki/File:Ramulus_artemis_-_female.JPG — https://creativecommons.org/licenses/by-sa/3.0
+- kallima-leaf-green.webp — Quartl — CC BY-SA 3.0 — https://commons.wikimedia.org/wiki/File:Kallima_inachus_qtl1.jpg — https://creativecommons.org/licenses/by-sa/3.0
+- kallima-oakleaf-ground.webp — Atanu Bose Photography — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:Close_wing_basking_position_of_Kallima_inachus_(Doyère,1840)_-_Orange_Oakleaf.jpg — https://creativecommons.org/licenses/by-sa/4.0
+- kallima-hanging-leaf.webp — Esin Üstün from Istanbul, Turkey — CC BY 2.0 — https://commons.wikimedia.org/wiki/File:Butterfly_disguised_as_a_dead_brown_leaf_(Kallima_Inachus)_(15454255446).jpg — https://creativecommons.org/licenses/by/2.0
+- leaf-insect-on-leaf.webp — Nireekshit — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:Leaf-Insect.jpg — https://creativecommons.org/licenses/by-sa/4.0
+- leaf-insect-pakke.webp — Nandini Velho — CC BY-SA 3.0 — https://commons.wikimedia.org/wiki/File:Leaf_insect_in_Pakke_Tiger_Reserve.JPG — https://creativecommons.org/licenses/by-sa/3.0
+- phyllium-philippinicum.webp — Doublebears — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:Phyllium_philippinicum_female.jpg — https://creativecommons.org/licenses/by-sa/4.0
+- treefrog-hyla-branch.webp — Charles J. Sharp — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:European_tree_frog_(Hyla_arborea)_Extremadura.jpg — https://creativecommons.org/licenses/by-sa/4.0
+- treefrog-nudidigita-rock.webp — Matt from Melbourne, Australia — CC BY 2.0 — https://commons.wikimedia.org/wiki/File:Leaf-Green_Tree_Frog_(Litoria_nudidigita)_(8397026115).jpg — https://creativecommons.org/licenses/by/2.0
+- treefrog-hyla-leaves.webp — IvanHabiprot — CC BY 4.0 — https://commons.wikimedia.org/wiki/File:European_tree_frog_(Hyla_arborea)_1.jpg — https://creativecommons.org/licenses/by/4.0
+- screech-owl-bark.webp — Michael Hunter from Canada — CC BY 2.0 — https://commons.wikimedia.org/wiki/File:Camouflage_(34825526915).jpg — https://creativecommons.org/licenses/by/2.0
+- screech-owl-tree-hole.webp — Gregory "Slobirdr" Smith — CC BY-SA 2.0 — https://commons.wikimedia.org/wiki/File:Eastern_Screech_Owl_(Megascops_asio)_(16737636725).jpg — https://creativecommons.org/licenses/by-sa/2.0
+- eagle-owl-bark.webp — Danelle Murray — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:Perfectly_Camouflaged_.jpg — https://creativecommons.org/licenses/by-sa/4.0
+- alaska-hare-summer.webp — USFWSAlaska — Public domain — https://commons.wikimedia.org/wiki/File:Tundra_Hare_(6773356149).jpg — https://commons.wikimedia.org/wiki/File:Tundra_Hare_(6773356149).jpg
+- mountain-hare-snow.webp — Bouke ten Cate — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:Mountain_hare_-_Lepus_timidus.jpg — https://creativecommons.org/licenses/by-sa/4.0
+- mountain-hare-molt.webp — John Fielding — CC BY-SA 2.0 — https://commons.wikimedia.org/wiki/File:A_Mountain_Hare_(Lepus_timidus)_-_geograph.org.uk_-_732793.jpg — https://creativecommons.org/licenses/by-sa/2.0
+- arctic-fox-2.webp — Czeva — CC BY 3.0 — https://commons.wikimedia.org/wiki/File:Vulpes_lagopus_-_zoopark_Dvorec.jpg — https://creativecommons.org/licenses/by/3.0
+- arctic-fox-3.webp — Jonatan Pie (unsplash.com/@r3dmax) — CC0 — https://commons.wikimedia.org/wiki/File:Vulpes_lagopus_in_Iceland.jpg — http://creativecommons.org/publicdomain/zero/1.0/deed.en
+- chameleon-1.webp — Benny Trapp — CC BY 3.0 — https://commons.wikimedia.org/wiki/File:BennyTrapp_Chamaeleo_chamaeleon_Samos_Griechenland.jpg — https://creativecommons.org/licenses/by/3.0
+- chameleon-2.webp — Zeynel Cebeci — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:Chamaeleo_chamaeleon_-_Common_Chameleon_-_Bukalemun.jpg — https://creativecommons.org/licenses/by-sa/4.0
+- cuttlefish-1.webp — Diego Delso — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:Sepia_com%C3%BAn_(Sepia_officinalis),_Catania,_Sicilia,_Italia,_2025-04-04,_DD_02.jpg — https://creativecommons.org/licenses/by-sa/4.0
+- cuttlefish-3.webp — Diego Delso — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:Sepia_com%C3%BAn_(Sepia_officinalis),_Parque_natural_de_la_Arr%C3%A1bida,_Portugal,_2020-07-21,_DD_62.jpg — https://creativecommons.org/licenses/by-sa/4.0
+- flounder-1.webp — Dr. Dwayne Meadows, NOAA/NMFS/OPR — Public domain — https://commons.wikimedia.org/wiki/File:Bothus_mancus.jpg — https://commons.wikimedia.org/wiki/File:Bothus_mancus.jpg
+- flounder-3.webp — Brocken Inaglory — CC BY-SA 3.0 — https://commons.wikimedia.org/wiki/File:Bothus_mancus_in_Hawaii.jpg — https://creativecommons.org/licenses/by-sa/3.0
+- grasshopper-1.webp — Knowledge and philosophy — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:Acrida_cinerea.jpg — https://creativecommons.org/licenses/by-sa/4.0
+- grasshopper-3.webp — 池田正樹 (talk)masaki ikeda — Public domain — https://commons.wikimedia.org/wiki/File:Acrida_cinerea_08Oct13.jpg — https://commons.wikimedia.org/wiki/File:Acrida_cinerea_08Oct13.jpg
+- leaf-gecko-1.webp — Thomas Fuhrmann — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:Satanic_Leaf-tailed_Gecko_(Uroplatus_phantasticus)_-_Analamazoatra_Res._-_Madagascar.jpg — https://creativecommons.org/licenses/by-sa/4.0
+- leaf-gecko-2.webp — Charles J. Sharp — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:Satanic_leaf-tailed_gecko_(Uroplatus_phantasticus)_Ranomafana_1.jpg — https://creativecommons.org/licenses/by-sa/4.0
+- leaf-mantis-1.webp — Bort07 — CC0 — https://commons.wikimedia.org/wiki/File:Adult_female_Deroplatys_desiccata.jpg — http://creativecommons.org/publicdomain/zero/1.0/deed.en
+- leaf-mantis-3.webp — M10376554 — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:Deroplatys_desiccata_in_nat%C3%BCrlicher_Umgebung.jpg — https://creativecommons.org/licenses/by-sa/4.0
+- leopard-1.webp — Charles J. Sharp — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:Leopard_(Panthera_pardus_pardus)_Kruger.jpg — https://creativecommons.org/licenses/by-sa/4.0
+- leopard-2.webp — Charles J. Sharp — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:Leopard_(Panthera_pardus_pardus)_Kruger_2.jpg — https://creativecommons.org/licenses/by-sa/4.0
+- octopus-2.webp — Diego Delso — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:Pulpo_com%C3%BAn_(Octopus_vulgaris),_Cathedral_Cave,_Gozo,_Malta,_2021-08-23,_DD_28.jpg — https://creativecommons.org/licenses/by-sa/4.0
+- octopus-3.webp — Diego Delso — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:Pulpo_com%C3%BAn_(Octopus_vulgaris),_Parque_natural_de_la_Arr%C3%A1bida,_Portugal,_2020-07-21,_DD_33.jpg — https://creativecommons.org/licenses/by-sa/4.0
+- orchid-mantis-2.webp — Luc Viatour — CC BY-SA 3.0 — https://commons.wikimedia.org/wiki/File:Mantis_Hymenopus_coronatus_1_Luc_Viatour.jpg — http://creativecommons.org/licenses/by-sa/3.0/
+- orchid-mantis-3.webp — Luc Viatour — CC BY-SA 3.0 — https://commons.wikimedia.org/wiki/File:Mantis_Hymenopus_coronatus_6_Luc_Viatour.jpg — http://creativecommons.org/licenses/by-sa/3.0/
+- polar-bear-1.webp — Alun Williams333 — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:Arth_wen_Ursus_maritimus.jpg — https://creativecommons.org/licenses/by-sa/4.0
+- polar-bear-2.webp — AWeith — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:Female_polar_bear_(Ursus_maritimus)_with_cub,_Svalbard.jpg — https://creativecommons.org/licenses/by-sa/4.0
+- tiger-1.webp — Photo (c)2007 Derek and Julie Ramsey (Ram-Man) edit by Chris_huh. — Public domain — https://commons.wikimedia.org/wiki/File:Amur_Tiger_Panthera_tigris_altaica_Eye_2112px_edit.jpg — https://commons.wikimedia.org/wiki/File:Amur_Tiger_Panthera_tigris_altaica_Eye_2112px_edit.jpg
+- tiger-2.webp — Charles J. Sharp — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:Bengal_tiger_(Panthera_tigris_tigris)_female_3.jpg — https://creativecommons.org/licenses/by-sa/4.0
+- zebra-2.webp — Charles J. Sharp — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:Burchell%27s_zebra_(Equus_quagga_burchellii)_head.jpg — https://creativecommons.org/licenses/by-sa/4.0
+- zebra-3.webp — Diego Delso — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:Cebras_comunes_(Equus_quagga),_parque_nacional_de_Tarangire,_Tanzania,_2024-05-25,_DD_90.jpg — https://creativecommons.org/licenses/by-sa/4.0
+- flamingo-1.webp — Diego Delso — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:Flamenco_com%C3%BAn_(Phoenicopterus_roseus),_Walvis_Bay,_Namibia,_2018-08-05,_DD_30.jpg — https://creativecommons.org/licenses/by-sa/4.0
+- flamingo-2.webp — Charles J. Sharp — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:Greater_flamingos_(Phoenicopterus_roseus)_Bahrain.jpg — https://creativecommons.org/licenses/by-sa/4.0
+- golden-monkey-1.webp — J. Patrick Fischer — CC BY-SA 3.0 — https://commons.wikimedia.org/wiki/File:2011_Rhinopithecus_roxellana.JPG — https://creativecommons.org/licenses/by-sa/3.0
+- golden-monkey-3.webp — Dinkun Chen — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:RHINOPITHECUS_ROXELLANA_IN_SHENZHEN_SAFARI_PARK.jpg — https://creativecommons.org/licenses/by-sa/4.0
+- parrot-1.webp — Charles J. Sharp — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:Rainbow_lorikeet_(Trichoglossus_moluccanus_moluccanus)_Adelaide_2.jpg — https://creativecommons.org/licenses/by-sa/4.0
+- parrot-2.webp — Charles J. Sharp — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:Rainbow_lorikeet_(Trichoglossus_moluccanus_moluccanus)_Sydney.jpg — https://creativecommons.org/licenses/by-sa/4.0
+- peacock-display-1.webp — Rohit Sharma (some additional editing by Cart) — CC BY 4.0 — https://commons.wikimedia.org/wiki/File:Indian_Peacock_courtship_display_at_Pench_national_park_(April,_2024)_08,_edited.jpg — https://creativecommons.org/licenses/by/4.0
+- peacock-display-3.webp — Juan Carlos Fonseca Mata — CC BY-SA 4.0 — https://commons.wikimedia.org/wiki/File:Male_Pavo_cristatus_displaying_-_Peafowl_1.jpg — https://creativecommons.org/licenses/by-sa/4.0

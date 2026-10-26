@@ -1,0 +1,87 @@
+/* Classroom landscape: the character and the evidence stay visible together. */
+.classroom-workspace,.conversation-panel{display:contents}
+.animal-gallery{flex:none;margin:10px 20px 0;border:1px solid #d8e4d5;border-radius:14px;background:#f5f9f1;overflow:hidden}
+.gallery-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;font-size:14px;color:#2c5135}
+.gallery-heading button,.gallery-search button,.viewer-head button,#btnViewerReveal,.voice-inline button{font:inherit;font-size:13px;min-height:36px;border:1px solid #bacdb5;border-radius:8px;padding:6px 12px;color:#29482f;background:#fff;cursor:pointer}
+#galleryContent{padding:0 12px 12px;max-height:260px;overflow:auto}
+.gallery-search{display:flex;gap:6px}
+.gallery-search input{min-width:0;flex:1;border:1px solid #cedbca;border-radius:8px;padding:8px;font:inherit;font-size:14px}
+#galleryStatus{margin:8px 0;font-size:12px;color:#5b6c59;line-height:1.5;white-space:pre-line}
+.gallery-results{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.animal-card{padding:0;border:1px solid #d6dfcf;border-radius:9px;overflow:hidden;background:#fff;cursor:pointer;text-align:left;font:inherit;min-width:0;color:#2e4732}
+.animal-card img{display:block;width:100%;height:88px;object-fit:cover}
+.animal-card span{display:block;font-size:12px;line-height:1.4;padding:6px 8px;overflow-wrap:anywhere}
+.animal-viewer{width:min(940px,94vw);max-height:92dvh;border:1px solid #ccdac6;border-radius:16px;padding:18px;color:#24432d;background:#fffef8;overflow:auto}
+.animal-viewer::backdrop{background:#112a20b3}
+.viewer-head{display:flex;gap:10px;justify-content:space-between;align-items:center;margin-bottom:12px}
+.animal-viewer img{display:block;width:100%;max-height:60dvh;object-fit:contain;background:#e9eee3;border-radius:8px}
+.animal-viewer p{font-size:15px;line-height:1.65;margin:10px 0}
+#animalViewerCredit{font-size:12px;color:#576955;overflow-wrap:anywhere}
+.animal-viewer a{color:#285d38}
+.voice-inline{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:6px 18px 4px;font-size:13px;color:#2f583b}
+.hold-live{display:none}
+.voice-input-active #btnModeToggle{position:relative}
+.voice-input-active #btnModeToggle .hold-copy{display:none}
+.voice-input-active #btnModeToggle .hold-live{display:block;white-space:normal;overflow:auto;max-height:64px;line-height:1.4}
+.voice-cancel-armed #btnModeToggle{background:#f6e4de!important;color:#833e29!important}
+.hold-hint-flash #btnModeToggle{background:#f3ead6!important;border-color:#ddcda4}
+.hold-hint-flash #btnModeToggle .hold-copy{display:none}
+.hold-hint-flash #btnModeToggle .hold-live{display:block;font-size:13px;color:#6a5b3b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.animal-card{position:relative}
+.animal-origin{position:absolute;top:6px;left:6px;font-size:10px;line-height:1.4;padding:2px 6px;border-radius:6px;background:rgba(20,40,25,.72);color:#fff;letter-spacing:.5px}
+.animal-origin.web{background:rgba(96,78,28,.78)}
+.animal-origin.generated{background:rgba(122,44,88,.8)}
+.answer-images{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:10px;max-width:100%;min-width:0}
+.answer-images .animal-card img{height:clamp(90px,16vh,150px);object-fit:contain;background:#eef3e9}
+.answer-images .animal-card span{font-size:11px;padding:5px 6px;line-height:1.4;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+.answer-images .animal-origin{font-size:9px;left:4px;top:4px;padding:1px 5px}
+.uploaded-photo{display:block;max-width:100%;max-height:180px;object-fit:contain;border-radius:8px;margin-top:8px}
+.gallery-group{grid-column:1/-1;font-size:12px;font-weight:600;color:#3f5d42;margin:4px 0 0;padding-top:6px;border-top:1px dashed #d3ddcb}
+.gallery-heading button:focus-visible,.animal-card:focus-visible,.gallery-search input:focus-visible,.gallery-search button:focus-visible,.animal-viewer button:focus-visible{outline:3px solid #618755;outline-offset:2px}
+@media(min-width:760px){
+ .chat-surface .app{max-width:1440px;padding:0 16px 14px}
+ .chat-surface .topbar{padding:12px 8px 8px;min-height:62px;background:transparent}
+ .chat-surface .view-switch{margin:0 0 10px;min-height:38px}
+ .chat-surface .view-switch button{min-height:34px;padding:4px 22px}
+ .chat-surface .classroom-workspace{display:grid;grid-template-columns:1fr;min-height:0;flex:1;gap:14px}
+ .chat-surface.avatar-view .classroom-workspace{grid-template-columns:minmax(260px,.8fr) minmax(410px,1.3fr)}
+ .chat-surface .conversation-panel{display:flex;flex-direction:column;min-width:0;min-height:0;position:relative;background:#fffef9;border:1px solid #e0e5d7;border-radius:18px;overflow:hidden;padding-top:12px}
+ .chat-surface.avatar-view .classroom-workspace .companion{display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:14px;min-height:0;align-items:stretch;padding:22px 18px 12px;border-radius:18px}
+ .chat-surface.avatar-view .classroom-workspace .companion-cloud{position:relative;inset:auto;min-height:66px;max-height:130px;padding:14px 18px;margin:0;border-radius:26px;text-align:left}
+ .chat-surface.avatar-view .classroom-workspace .companion-caption{font-size:16px;line-height:1.6;max-height:102px;margin:0}
+ .chat-surface.avatar-view .classroom-workspace .character-stage{position:relative;inset:auto;min-height:0;width:100%;height:100%;align-self:stretch}
+ .chat-surface.avatar-view .classroom-workspace .companion-bottom{position:relative;inset:auto;width:100%;padding:0;margin:0;background:none}
+ .chat-surface.avatar-view .classroom-workspace .companion-state{font-size:12px;line-height:1.5;margin:0;padding:5px 9px}
+ .chat-surface.avatar-view .companion-actions{display:none}
+ .chat-surface.avatar-view .conversation-panel .main{display:block!important}
+ .chat-surface.avatar-view .conversation-panel .inputbar,.chat-surface.avatar-view .conversation-panel .interaction-tabs{display:flex!important}
+ .chat-surface.avatar-view .conversation-panel .interaction-goal{display:block!important}
+ .chat-surface.avatar-view .conversation-panel #status:not([hidden]),.chat-surface.avatar-view .conversation-panel .photo-preview:not([hidden]),.chat-surface.avatar-view .conversation-panel #attachmentMenu:not([hidden]){display:flex!important}
+ .chat-surface.avatar-view .conversation-panel .photo-preview[hidden]{display:none!important}
+ .chat-surface .conversation-panel .main{padding:14px 20px;scrollbar-gutter:stable;overscroll-behavior:contain}
+ .chat-surface .conversation-panel .welcome{gap:16px;padding:10px 0;justify-content:center}
+ .chat-surface .welcome-heading{font-size:clamp(23px,2.2vw,32px);letter-spacing:0}
+ .chat-surface .conversation-panel .inputbar{margin:8px 12px 12px;padding:10px;gap:8px;min-height:76px;border-radius:14px;box-shadow:none;border-color:#d4e1cd;flex-wrap:wrap}
+ .chat-surface .conversation-panel .text-wrap{flex:1 1 180px}
+ .chat-surface .conversation-panel .inputbar #btnModeToggle{flex:1 1 170px;width:auto;min-width:170px;min-height:52px;height:auto;background:#e8f1df;border-color:#bdd0b1;color:#23472c;font-size:16px;max-height:84px;padding:10px 12px}
+ .chat-surface .conversation-panel .inputbar #textInput{font-size:15px}
+ .chat-surface .conversation-panel .interaction-tabs{margin:0 20px}
+ .chat-surface .conversation-panel .interaction-goal{margin:6px 20px 0}
+ .chat-surface .conversation-panel .animal-gallery{margin:10px 12px 0}
+ .chat-surface .conversation-panel .bubble{font-size:16px}
+ .chat-surface .conversation-panel .chat{gap:20px}
+ .chat-surface.avatar-view #btnNew{visibility:visible;pointer-events:auto}
+ .chat-surface.voice-input-active .rec-layer:not([hidden]){display:none!important}
+ .chat-surface .voice-inline{flex:none;margin-top:0;margin-bottom:10px}
+ .chat-surface .voice-inline button{min-height:30px;font-size:12px}
+ .chat-surface .voice-inline #voiceInlineHint{min-width:0}
+ .chat-surface .conversation-panel .asr-edit:not([hidden]){display:flex!important;position:relative;inset:auto;margin:8px 12px;padding:12px;border:1px solid #d5e2cd;border-radius:12px;box-shadow:none}
+ .chat-surface .conversation-panel .jump-latest{position:absolute;bottom:100px;left:50%;max-width:160px}
+}
+@media(min-width:760px) and (max-height:640px){
+ .chat-surface .app{padding-bottom:8px}.chat-surface .topbar{min-height:46px;padding:6px 8px}.chat-surface .view-switch{margin-bottom:6px}
+ .chat-surface .conversation-panel{padding-top:8px}.chat-surface .gallery-heading{padding:6px 12px}.chat-surface .conversation-panel .main{padding:10px 18px}
+ .chat-surface .conversation-panel .welcome{gap:10px}.chat-surface .quick .chip{min-height:46px;font-size:13px}.chat-surface .conversation-panel .inputbar{min-height:64px;padding:6px}
+ .chat-surface.avatar-view .classroom-workspace .companion{padding:16px 12px 10px;gap:10px}
+}
+@media(max-width:759px){.voice-inline{display:none!important}.gallery-results{grid-template-columns:repeat(2,minmax(0,1fr))}.avatar-view .animal-gallery{display:none}.animal-gallery{margin-top:8px}}

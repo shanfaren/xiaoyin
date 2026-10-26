@@ -107,3 +107,15 @@ test('dragging upward arms cancellation and releasing cancels instead of sending
   assert.equal(button.classList.contains('cancel-armed'), false);
   assert.equal(finishValue, true);
 });
+
+test('pen long press starts once and release outside sends once', async () => {
+  const window=loadHold(()=>true),button=new FakeElement();
+  let starts=0,finishes=[];
+  window.bindForestHold(button,()=>{starts++;},cancel=>finishes.push(cancel));
+  const pen={pointerType:'pen',pointerId:7,button:0,clientY:600};
+  button.dispatchEvent(Object.assign(new Event('pointerdown'),pen));
+  await new Promise(resolve=>setTimeout(resolve,18));
+  window.dispatchEvent(Object.assign(new Event('pointerup'),pen));
+  button.dispatchEvent(Object.assign(new Event('pointerup'),pen));
+  assert.equal(starts,1);assert.deepEqual(finishes,[false]);
+});

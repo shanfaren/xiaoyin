@@ -9,10 +9,10 @@
     "admin_token": ""
   },
   "character": {
-    "name": "小隐",
-    "alias": "AI森林小博士",
+    "name": "森林小博士",
+    "alias": "AI自然探究伙伴",
     "course_name": "解锁大自然的隐身魔法",
-    "welcome": "你好呀！我是小隐，你的自然探究小伙伴。今天我们一起走进大森林，去找会隐身的小动物吧！"
+    "welcome": "你好呀！我是森林小博士，你的自然探究小伙伴。今天我们一起走进大森林，去找会隐身的小动物吧！"
   },
   "llm": {
     "primary": {
@@ -46,11 +46,12 @@
     "enabled": false
   },
   "asr": {
-    "_comment": "语音识别。当前仅实现火山引擎「录音文件识别极速版 HTTP」适配器（docs.volcengine.com/docs/DoubaoVoice/recording-file-recognition-lite-http）。",
+    "_comment": "支持 volcengine 专用ASR（标准版 volc.seedasr.auc 走 submit/query；极速版 volc.bigasr.auc_turbo 走 recognize/flash），以及 ark_audio 音频模型转写。ark_audio 可设置 credential_source=llm.primary 引用现有方舟凭证；须指定支持音频的模型，不能使用 seed-evolving。",
+    "credential_source": "",
     "provider": "",
-    "base_url": "https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash",
+    "base_url": "https://openspeech.bytedance.com/api/v3/auc/bigmodel",
     "model": "bigmodel",
-    "resource_id": "volc.bigasr.auc_turbo",
+    "resource_id": "volc.seedasr.auc",
     "api_key": "",
     "api_key_env": "ASR_API_KEY",
     "app_id": "",

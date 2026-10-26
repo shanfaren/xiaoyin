@@ -138,12 +138,25 @@ const audioPreload = String.raw`
 
   window.fetch = async function (input, init) {
     const url = typeof input === 'string' ? input : input.url;
+    const parsedUrl = new URL(url, location.href);
     if (url.includes('/api/asr')) {
       window.__avatarAuditAsrCount = (window.__avatarAuditAsrCount || 0) + 1;
       return new Response(JSON.stringify({ ok: true, text: '竹节虫为什么像树枝？' }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' }
       });
+    }
+    if (parsedUrl.pathname === '/api/chat' && init && init.method === 'POST') {
+      const answer = '**观察重点**\n\n- 先看竹节虫身体的形状。\n- 再比较它和树枝的颜色与纹理。\n- 最后观察它停住时会不会轻轻摆动。\n\n' +
+        '竹节虫不是真的消失，而是身体形状、颜色和行动方式让它不容易被发现。\n\n' +
+        Array.from({length: 9}, (_, i) => '第' + (i + 1) + '点：换一个角度继续比较，看看轮廓是否还像树枝。').join('\n\n');
+      const sse = [
+        { type: 'meta', context: {}, mode: 'student', stage_id: 'qa', interaction_name: '答疑' },
+        { type: 'model', provider: 'audit', model: 'audit', is_real_ai: true },
+        { type: 'delta', text: answer },
+        { type: 'done', stopped: false, chars: answer.length }
+      ].map((event) => 'data: ' + JSON.stringify(event) + '\n\n').join('');
+      return new Response(sse, { status: 200, headers: { 'Content-Type': 'text/event-stream; charset=utf-8' } });
     }
     if (url.includes('/api/tts')) {
       window.__avatarAuditTtsCount = (window.__avatarAuditTtsCount || 0) + 1;
@@ -158,7 +171,7 @@ const audioPreload = String.raw`
       json.voice = json.voice || {};
       json.voice.tts = json.voice.tts || {};
       json.voice.tts.state = 'configured';
-      json.voice.auto_play = true;
+      json.voice.auto_play = false;
       json.voice.auto_send = false;
       return new Response(JSON.stringify(json), {
         status: response.status,
@@ -298,6 +311,15 @@ try {
   assert.equal(initialVoiceAudit.voiceActive, false);
   assert.equal(initialVoiceAudit.micRequests, 0);
   assert.ok(initialVoiceAudit.welcomeTime > 0 || !initialVoiceAudit.welcomePaused);
+  await waitFor(`window.forestConversation.snapshot().state === 'speaking' &&
+    window.forestSpeechLevel() > 0.1 &&
+    window.__forestCharacter2D.animationState().jawLevel > 0.45`, 5000);
+  const welcomeMouthAudit = await evaluate(`({
+    state: window.forestConversation.snapshot().state,
+    level: window.forestSpeechLevel(),
+    jaw: window.__forestCharacter2D.animationState().jawLevel
+  })`);
+  await capture('desktop_welcome_speaking.png');
   await waitFor(`performance.getEntriesByType('resource').some((entry) => entry.name.includes('background_candidates'))`);
   const backgroundAudit = await evaluate(`({
     backgroundImage: getComputedStyle(document.getElementById('companion')).backgroundImage,
@@ -517,6 +539,63 @@ try {
   await setState('speaking');
   await capture('mobile_speaking.png');
 
+  await evaluate(`document.getElementById('viewChat').click()`);
+  await waitFor(`document.getElementById('companion').hidden === true`);
+  const initialTextInput = await evaluate(`(() => {
+    const input = document.getElementById('textInput');
+    return { tag: input.tagName, rows: input.rows, height: input.getBoundingClientRect().height };
+  })()`);
+  assert.equal(initialTextInput.tag, 'TEXTAREA');
+  assert.equal(initialTextInput.rows, 1);
+  await evaluate(`(() => {
+    const input = document.getElementById('textInput');
+    input.value = '我想观察竹节虫的形状和颜色。\\n再比较它停住时的动作。';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  })()`);
+  const expandedHeight = await evaluate(`document.getElementById('textInput').getBoundingClientRect().height`);
+  assert.ok(expandedHeight > initialTextInput.height);
+  assert.equal(await evaluate(`document.querySelectorAll('#quickList .chip').length`), 3);
+  assert.equal(await evaluate(`document.getElementById('btnQuickMore').hidden`), false);
+
+  const firstQuick = await evaluate(`document.querySelector('#quickList .chip').textContent`);
+  await evaluate(`document.getElementById('btnQuickMore').click()`);
+  const nextQuick = await evaluate(`document.querySelector('#quickList .chip').textContent`);
+  assert.notEqual(nextQuick, firstQuick);
+
+  await evaluate(`(() => {
+    const input = document.getElementById('textInput');
+    input.value = '竹节虫为什么像树枝？';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    document.getElementById('btnSend').click();
+  })()`);
+  await waitFor(`window.forestConversation.snapshot().busy === false &&
+    !!document.querySelector('.msg.a .bubble-text strong') &&
+    !!document.querySelector('.msg.a .bubble-text ul')`, 10000);
+  const chatUiAudit = await evaluate(`({
+    role: document.getElementById('chat').getAttribute('role'),
+    live: document.getElementById('chat').getAttribute('aria-live'),
+    statusRole: document.getElementById('status').getAttribute('role'),
+    strong: document.querySelector('.msg.a .bubble-text strong').textContent,
+    listItems: document.querySelectorAll('.msg.a .bubble-text li').length,
+    typingDots: document.querySelectorAll('.msg.a .typing').length
+  })`);
+  assert.equal(chatUiAudit.role, 'log');
+  assert.equal(chatUiAudit.live, 'polite');
+  assert.equal(chatUiAudit.statusRole, 'status');
+  assert.equal(chatUiAudit.strong, '观察重点');
+  assert.ok(chatUiAudit.listItems >= 3);
+  assert.equal(chatUiAudit.typingDots, 0);
+
+  await evaluate(`(() => {
+    const main = document.getElementById('main');
+    main.scrollTop = 0;
+    main.dispatchEvent(new Event('scroll'));
+  })()`);
+  await waitFor(`document.getElementById('btnJumpLatest').hidden === false`);
+  await evaluate(`document.getElementById('btnJumpLatest').click()`);
+  await waitFor(`document.getElementById('btnJumpLatest').hidden === true`);
+  await capture('mobile_text_chat.png');
+
   const auditEvents = cdp.events
     .filter((event) => event.method === 'Runtime.exceptionThrown' ||
       event.method === 'Log.entryAdded' ||
@@ -546,6 +625,9 @@ try {
     modelReadyMs,
     characterResourceAudit,
     initialVoiceAudit,
+    welcomeMouthAudit,
+    initialTextInput,
+    chatUiAudit,
     voiceGestureAudit,
     errors
   }, null, 2));

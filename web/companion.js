@@ -8,7 +8,7 @@
   function sync(){
     var s=snapshot(); state=s.state;
     $('companionPurpose').value=s.profile||'qa';$('companionPurpose').disabled=!!s.busy||!!s.recording;
-    $('companionTalk').textContent=s.recording?'松开结束':s.busy?'正在回答…':'按住说话';
+    if(!document.body.classList.contains('voice-input-active'))$('companionTalk').textContent=s.recording?'松开结束':s.busy?'正在回答…':'按住说话';
     $('companionCancel').hidden=!s.recording;
     $('companionReplay').hidden=!lastAnswer||s.recording||s.busy;
     $('companionState').textContent=s.recording?'我在听，松开结束录音':s.busy?'让我想一想…':state==='speaking'?'正在和你说话':state==='thinking'?'正在准备声音…':'按住下方按钮，说说你的发现';
@@ -16,19 +16,28 @@
     $('characterStage').dataset.state=state;
   }
   function showCaption(text){$('companionCaption').textContent=text;$('companionCaption').scrollTop=0;}
+  function posterVisible(){var poster=$('characterPoster');return !!(poster&&poster.complete&&poster.naturalWidth);}
+  function usePoster(){
+    $('characterStage').dataset.renderMode='poster';
+    $('modelLoading').hidden=posterVisible();
+    if(posterVisible())window.dispatchEvent(new CustomEvent('forest:character-ready'));
+    if(!posterVisible())$('modelLoading').textContent='正在准备角色，已经可以提问。';
+  }
   function setView(view){
     cancelAnimationFrame(frame);frame=0;previous=0;
     active=view==='3d';document.body.classList.toggle('avatar-view',active);$('companion').hidden=!active;
+    $('btnJumpLatest').hidden=true;
     $('view3d').setAttribute('aria-pressed',String(active));$('viewChat').setAttribute('aria-pressed',String(!active));
     try{localStorage.setItem('forest_view_mesh',view);}catch(e){}
+    window.dispatchEvent(new CustomEvent('forest:view',{detail:{view:view}}));
     if(active){loadScene();if(ready){resize();animate();}sync();}
     else {cancelAnimationFrame(frame);frame=0;previous=0;}
   }
   function loadScene(){
     if(ready||loading)return;
     loading=true;
-    $('modelLoading').hidden=false;$('modelLoading').textContent='正在加载 2D 角色…';
-    var slowHint=setTimeout(function(){if(!ready&&loading)$('modelLoading').textContent='网络较慢，角色仍在加载…';},4500);
+    usePoster();
+    var slowHint=setTimeout(function(){if(!ready&&loading)usePoster();},4500);
     function script(url){return new Promise(function(resolve,reject){var s=document.createElement('script');s.src=url;s.onload=resolve;s.onerror=reject;document.head.appendChild(s);});}
     (window.THREE?Promise.resolve():script('/static/vendor/three.min.js'))
       .then(function(){return window.loadForestCharacter2D(window.THREE);})
@@ -37,7 +46,7 @@
         if(new URLSearchParams(location.search).get('avatarAudit')==='1')window.__forestCharacter2D=character;
         createScene(character);ready=true;loading=false;$('modelLoading').hidden=true;resize();if(active)animate();
       })
-      .catch(function(e){clearTimeout(slowHint);loading=false;console.error('Character load failed',e);$('modelLoading').textContent='角色加载失败，请刷新页面或切换“文字聊天”。';});
+      .catch(function(e){clearTimeout(slowHint);loading=false;ready=false;usePoster();console.error('Character load failed',e);});
   }
   function createScene(character){
     var T=window.THREE,scene=new T.Scene(),camera=new T.PerspectiveCamera(32,1,.1,80);
@@ -54,7 +63,8 @@
     scene.add(character.root);
     // The illustrated forest is a CSS background; WebGL only draws the character.
     sceneData={renderer:renderer,camera:camera,scene:scene,character:character};
-    renderer.domElement.addEventListener('webglcontextlost',function(e){e.preventDefault();ready=false;cancelAnimationFrame(frame);frame=0;previous=0;$('modelLoading').hidden=false;$('modelLoading').textContent='角色画面暂时中断，请刷新页面或切换文字聊天。';});
+    $('characterStage').dataset.renderMode='animated';
+    renderer.domElement.addEventListener('webglcontextlost',function(e){e.preventDefault();ready=false;loading=false;cancelAnimationFrame(frame);frame=0;previous=0;usePoster();});
     if(window.ResizeObserver)new ResizeObserver(resize).observe($('characterStage'));
     window.addEventListener('resize',resize);
   }
@@ -92,6 +102,7 @@
   window.addEventListener('forest:transcript',function(e){showCaption('我听到：'+e.detail.text);});
   window.addEventListener('forest:partial',function(e){showCaption(e.detail.text);});
   window.addEventListener('forest:answer',function(e){lastAnswer=e.detail.text;showCaption(lastAnswer);sync();});
+  window.addEventListener('forest:reset',function(){lastAnswer='';notice='';showCaption('你好呀，我们一起寻找大自然的隐身高手吧！');sync();});
   window.addEventListener('forest:notice',function(e){notice=e.detail.text;if(lastAnswer && notice.indexOf('欢迎回来')===0)return;showCaption(notice);});
   new MutationObserver(sync).observe($('btnStop'),{attributes:true,attributeFilter:['hidden']});
   new MutationObserver(sync).observe($('recLayer'),{attributes:true,attributeFilter:['hidden']});
@@ -99,5 +110,6 @@
   document.addEventListener('visibilitychange',function(){if(document.hidden){cancelAnimationFrame(frame);frame=0;previous=0;}else if(active&&ready)animate();});
   $('btnNew').addEventListener('click',function(){if(snapshot().busy)return;lastAnswer='';showCaption('你好呀，我们一起寻找大自然的隐身高手吧！');sync();});
   var preferred='3d';try{preferred=localStorage.getItem('forest_view_mesh')||'3d';}catch(e){}
+  if($('characterPoster'))$('characterPoster').addEventListener('load',function(){if(!ready){$('modelLoading').hidden=true;window.dispatchEvent(new CustomEvent('forest:character-ready'));}});
   setView(preferred==='chat'?'chat':'3d');
 })();

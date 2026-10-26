@@ -17,6 +17,7 @@ import json
 import time
 import urllib.error
 import urllib.request
+from backend.adapters.network import open_request
 
 from .errors import NotConfigured, UpstreamError, TimeoutError_
 
@@ -135,7 +136,7 @@ class LLMClient:
         for attempt in range(retries + 1):
             req = urllib.request.Request(url, data=data, headers=headers, method='POST')
             try:
-                resp = urllib.request.urlopen(req, timeout=timeout)
+                resp = open_request(req, timeout=timeout)
                 break
             except urllib.error.HTTPError as e:
                 body = ''

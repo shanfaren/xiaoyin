@@ -21,8 +21,10 @@ https://www.volcengine.com/docs/6561/1631584
 """
 import base64
 import json
+import time
 import urllib.error
 import urllib.request
+from backend.adapters.network import open_request
 import uuid
 
 from .errors import NotConfigured, UpstreamError
@@ -101,74 +103,111 @@ class ASRClient:
             raise NotConfigured('asr', f"语音识别供应商 {a.get('provider')} 的适配器尚未实现，"
                                       f"当前仅实现了 volcengine（火山引擎录音文件识别极速版 HTTP）")
 
-    # ---------- 火山引擎录音文件识别极速版 ----------
+    # ---------- 火山引擎录音文件识别（极速版 flash 单次 + 标准版 submit/query） ----------
     def _volcengine(self, audio_bytes, audio_format='wav'):
         a = self.cfg['asr']
-        url = str(a.get('base_url') or 'https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash').strip()
-        resource_id = str(a.get('resource_id') or 'volc.bigasr.auc_turbo')
-        req_id = str(uuid.uuid4())
-        headers = {
-            'Content-Type': 'application/json',
-            'X-Api-Resource-Id': resource_id,
-            'X-Api-Request-Id': req_id,
-            'X-Api-Sequence': '-1',
-        }
+        base = str(a.get('base_url') or 'https://openspeech.bytedance.com/api/v3/auc/bigmodel').strip().rstrip('/')
+        if base.endswith('/recognize/flash'):
+            base = base[:-len('/recognize/flash')]
+        resource_id = str(a.get('resource_id') or 'volc.seedasr.auc').strip()
+        is_flash = resource_id.endswith('_turbo')
         app_id = str(a.get('app_id') or '').strip()
         api_key = str(a.get('api_key') or '').strip()
-        if app_id:
-            # 旧版控制台：APP ID + Access Token
-            headers['X-Api-App-Key'] = app_id
-            headers['X-Api-Access-Key'] = api_key
-        else:
-            # 新版控制台：仅 API Key
-            headers['X-Api-Key'] = api_key
+
+        fmt = str(audio_format or 'wav').lower().strip()
+        if fmt.startswith('audio/'):
+            fmt = fmt[len('audio/'):]
+        fmt = fmt.split(';')[0].strip()
+        fmt = {'mpeg': 'mp3', 'x-wav': 'wav', 'x-m4a': 'm4a'}.get(fmt, fmt)
+        if fmt not in ('wav', 'mp3', 'ogg', 'opus', 'm4a'):
+            fmt = 'wav'
+
+        def _headers(req_id):
+            h = {
+                'Content-Type': 'application/json',
+                'X-Api-Resource-Id': resource_id,
+                'X-Api-Request-Id': req_id,
+                'X-Api-Sequence': '-1',
+            }
+            if app_id:
+                # 旧版控制台：APP ID + Access Token
+                h['X-Api-App-Key'] = app_id
+                h['X-Api-Access-Key'] = api_key
+            else:
+                # 新版控制台：仅 API Key
+                h['X-Api-Key'] = api_key
+            return h
+
+        def _post(url, body, req_id):
+            data = json.dumps(body, ensure_ascii=False).encode('utf-8')
+            req = urllib.request.Request(url, data=data, headers=_headers(req_id), method='POST')
+            timeout = int(self.cfg['llm'].get('timeout_seconds', 60))
+            try:
+                resp = urllib.request.urlopen(req, timeout=timeout)
+                raw = resp.read().decode('utf-8', 'ignore')
+                return raw, resp.headers.get('X-Api-Status-Code'), \
+                    resp.headers.get('X-Api-Message'), resp.headers.get('X-Tt-Logid')
+            except urllib.error.HTTPError as e:
+                body_txt = ''
+                try:
+                    body_txt = e.read().decode('utf-8', 'ignore')[:400]
+                except Exception:
+                    pass
+                raise UpstreamError(f'语音识别上游错误 HTTP {e.code}: {body_txt}', status=e.code)
+            except Exception as e:
+                raise UpstreamError(f'语音识别调用失败：{e}')
+
+        def _check(code, msg):
+            if code and code != '20000000':
+                hints = {
+                    '20000003': '音频为静音，未检测到有效语音',
+                    '45000001': '请求参数无效（检查 api_key / app_id / resource_id 是否正确）',
+                    '45000002': '空音频',
+                    '45000151': '音频格式不正确（支持 WAV/MP3/OGG OPUS）',
+                    '55000031': '服务繁忙，请稍后重试',
+                }
+                raise UpstreamError(f'语音识别失败：{code} {msg or ""} {hints.get(code, "")}'.strip())
 
         body = {
             'user': {'uid': app_id or 'xiaoyin'},
-            'audio': {'data': base64.b64encode(audio_bytes).decode('ascii')},
+            'audio': {'data': base64.b64encode(audio_bytes).decode('ascii'), 'format': fmt},
             'request': {
                 'model_name': str(a.get('model') or 'bigmodel'),
                 'enable_punc': True,
                 'enable_itn': True,
             },
         }
-        req = urllib.request.Request(url, data=json.dumps(body, ensure_ascii=False).encode('utf-8'),
-                                     headers=headers, method='POST')
-        timeout = int(self.cfg['llm'].get('timeout_seconds', 60))
-        try:
-            resp = urllib.request.urlopen(req, timeout=timeout)
-            raw = resp.read().decode('utf-8', 'ignore')
-            status_code = resp.headers.get('X-Api-Status-Code')
-            msg = resp.headers.get('X-Api-Message')
-            logid = resp.headers.get('X-Tt-Logid')
-        except urllib.error.HTTPError as e:
-            body_txt = ''
+        req_id = str(uuid.uuid4())
+
+        if is_flash:
+            raw, code, msg, logid = _post(base + '/recognize/flash', body, req_id)
+            _check(code, msg)
             try:
-                body_txt = e.read().decode('utf-8', 'ignore')[:400]
+                obj = json.loads(raw)
+                text = (obj.get('result') or {}).get('text')
+            except Exception:
+                raise UpstreamError('语音识别返回格式异常')
+            if not text:
+                raise UpstreamError('语音识别未返回文本字段 result.text')
+            return {'text': text, 'logid': logid, 'request_id': req_id, 'provider': 'volcengine'}
+
+        # 标准版：submit 提交后轮询 query 取结果（提交接口以 X-Api-Request-Id 作为任务 ID）
+        raw, code, msg, logid = _post(base + '/submit', body, req_id)
+        _check(code, msg)
+        deadline = time.time() + 30
+        while True:
+            raw, code, msg, logid = _post(base + '/query', {}, req_id)
+            _check(code, msg)
+            try:
+                obj = json.loads(raw)
+                text = (obj.get('result') or {}).get('text')
+                if text:
+                    return {'text': text, 'logid': logid, 'request_id': req_id, 'provider': 'volcengine'}
             except Exception:
                 pass
-            raise UpstreamError(f'语音识别上游错误 HTTP {e.code}: {body_txt}', status=e.code)
-        except Exception as e:
-            raise UpstreamError(f'语音识别调用失败：{e}')
-
-        if status_code and status_code != '20000000':
-            hints = {
-                '20000003': '音频为静音，未检测到有效语音',
-                '45000001': '请求参数无效（检查 app_id / access token / resource_id 是否正确）',
-                '45000002': '空音频',
-                '45000151': '音频格式不正确（支持 WAV/MP3/OGG OPUS）',
-                '55000031': '服务繁忙，请稍后重试',
-            }
-            raise UpstreamError(f'语音识别失败：{status_code} {msg or ""} {hints.get(status_code, "")}'.strip())
-
-        try:
-            obj = json.loads(raw)
-            text = (obj.get('result') or {}).get('text')
-        except Exception:
-            raise UpstreamError('语音识别返回格式异常')
-        if text is None:
-            raise UpstreamError('语音识别未返回文本字段 result.text')
-        return {'text': text, 'logid': logid, 'request_id': req_id, 'provider': 'volcengine'}
+            if time.time() >= deadline:
+                raise UpstreamError('语音识别超时，未能在 30 秒内返回结果')
+            time.sleep(1.0)
 
     def _ark_audio(self, audio_bytes, audio_format):
         a = self.cfg['asr']
@@ -185,7 +224,7 @@ class ASRClient:
             data=json.dumps(body,ensure_ascii=False).encode('utf-8'),
             headers={'Content-Type':'application/json','Authorization':'Bearer '+a['api_key']})
         try:
-            with urllib.request.urlopen(req, timeout=45) as resp:
+            with open_request(req, timeout=45) as resp:
                 obj=json.load(resp)
             text=obj['choices'][0]['message']['content']
             if not isinstance(text,str):

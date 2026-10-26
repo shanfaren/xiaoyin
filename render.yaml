@@ -20,8 +20,12 @@ services:
       - key: TTS_API_KEY
         sync: false
       - key: ASR_PROVIDER
-        value: "ark_audio"
+        value: "volcengine"
+      - key: ASR_BASE_URL
+        value: "https://openspeech.bytedance.com/api/v3/auc/bigmodel"
       - key: ASR_MODEL
-        value: "doubao-seed-2-1-lite-260915"
-      - key: ASR_CREDENTIAL_SOURCE
-        value: "llm.primary"
+        value: "bigmodel"
+      - key: ASR_RESOURCE_ID
+        value: "volc.seedasr.auc"
+      - key: ASR_API_KEY
+        sync: false

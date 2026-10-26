@@ -8,11 +8,13 @@
 <link rel="icon" href="data:,">
 <link rel="preload" href="/assets/character_optimized/pose_idle.webp?v=20261025optimized1" as="image" type="image/webp" crossorigin="anonymous" fetchpriority="high">
 <link rel="preload" href="/static/vendor/three.min.js" as="script" fetchpriority="high">
-<link rel="stylesheet" href="/static/style.css?v=20261025voiceui1">
-<link rel="stylesheet" href="/static/chat.css?v=20261015compact1">
-<link rel="stylesheet" href="/static/companion.css?v=20261025voiceui3">
+<link rel="stylesheet" href="/static/style.css?v=20261026cloudfix1">
+<link rel="stylesheet" href="/static/chat.css?v=20261026cloudfix1">
+<link rel="stylesheet" href="/static/companion.css?v=20261026cloudfix1">
+<link rel="stylesheet" href="/static/classroom.css?v=20261026cloudfix1">
 </head>
 <body class="chat-surface">
+<a class="skip-link" href="#main">跳到对话内容</a>
 <audio id="welcomeAudio" src="/assets/audio/森林小博士_自我介绍.mp3?v=20261025intro1" preload="auto" playsinline></audio>
 <div id="app" class="app">
 
@@ -27,16 +29,18 @@
         <div class="brand-sub" id="brandSub">自然探究 AI 伙伴 · 大班科学</div>
       </div>
     </div>
-    <button class="icon-btn" id="btnNew" title="开始新对话" aria-label="开始新对话">↺</button>
+    <button class="icon-btn round" id="btnNew" title="开始新对话" aria-label="开始新对话">↺</button>
   </header>
+  <section id="startupError" class="startup-error" role="alert" hidden><span>连接暂时没有成功，请稍后重试。</span><button type="button" id="btnStartupRetry">重新连接</button></section>
 
   <nav class="view-switch" aria-label="选择显示方式">
-    <button type="button" id="view3d" aria-pressed="false">角色对话</button>
-    <button type="button" id="viewChat" aria-pressed="true">文字聊天</button>
+    <button type="button" id="view3d" aria-pressed="false">课堂互动</button>
+    <button type="button" id="viewChat" aria-pressed="true">专注聊天</button>
   </nav>
+  <div class="classroom-workspace">
   <section id="companion" class="companion" hidden aria-label="森林小博士形象语音伙伴">
     <div class="companion-cloud"><p class="companion-caption" id="companionCaption" aria-live="polite">你好呀，我们一起寻找大自然的隐身高手吧！</p></div>
-    <button type="button" class="character-stage" id="characterStage" aria-label="轻点听自我介绍，长按下方按钮开始语音输入"><span id="modelLoading">正在加载 2D 角色…</span></button>
+    <button type="button" class="character-stage" id="characterStage" data-render-mode="poster" aria-label="轻点听自我介绍，长按下方按钮开始语音输入"><img id="characterPoster" class="character-poster" src="/assets/character_optimized/pose_idle.webp?v=20261026cloudfix1" alt="森林小博士" fetchpriority="high"><span id="modelLoading">正在准备角色…</span></button>
     <div class="companion-bottom">
       <p class="companion-state" id="companionState" role="status">点击我，说说你的发现</p>
       <div class="companion-actions"><button type="button" id="companionTalk">按住说话</button><button type="button" id="companionReplay" hidden>重新朗读</button><button type="button" id="companionCancel" hidden>取消录音</button></div>
@@ -44,12 +48,21 @@
       <p class="companion-note">轻点我，开始或停止说话 · 也可以切换文字聊天</p>
     </div>
   </section>
+  <section class="conversation-panel" aria-label="课堂对话与动物图片">
   <nav class="interaction-tabs" id="interactionTabs" aria-label="选择对话用途">
-    <button type="button" data-profile="qa" aria-pressed="true">提问答疑</button>
-    <button type="button" data-profile="hint" aria-pressed="false">探究提示</button>
+    <button type="button" data-profile="qa" aria-pressed="true" aria-label="提问答疑">答疑</button>
+    <button type="button" data-profile="hint" aria-pressed="false" aria-label="探究提示">提示</button>
   </nav>
   <p class="interaction-goal" id="interactionGoal">有疑问，听一个简短、准确的解释。</p>
 
+  <section class="animal-gallery" id="animalGallery" aria-label="动物观察图库">
+    <div class="gallery-heading"><strong>动物观察窗</strong><button type="button" id="btnGalleryToggle" aria-expanded="false" aria-controls="galleryContent">打开图库</button></div>
+    <div id="galleryContent" hidden>
+      <form id="gallerySearch" class="gallery-search"><input id="galleryQuery" aria-label="想观察什么动物" placeholder="竹节虫、枯叶蝶、保护色…" maxlength="100"><button type="submit">找图片</button></form>
+      <p id="galleryStatus" role="status">选择一张图片，放大观察。</p>
+      <div class="gallery-results" id="galleryResults"></div>
+    </div>
+  </section>
   <!-- 主体 -->
   <main class="main" id="main">
     <!-- 首屏欢迎区 -->
@@ -79,6 +92,7 @@
       <div class="quick">
         <div class="quick-label">你可以这样问我</div>
         <div class="quick-list" id="quickList"></div>
+        <button class="quick-more" type="button" id="btnQuickMore">换一组问题</button>
       </div>
 
       <div class="voice-entry">
@@ -90,11 +104,12 @@
     </section>
 
     <!-- 对话区 -->
-    <section class="chat" id="chat" hidden></section>
+    <section class="chat" id="chat" role="log" aria-live="polite" aria-relevant="additions text" aria-label="与小博士的对话" hidden></section>
   </main>
 
   <!-- 状态提示 -->
-  <div class="status" id="status" hidden><span class="spinner"></span><span id="statusText"></span></div>
+  <div class="status" id="status" role="status" aria-live="polite" hidden><span class="spinner"></span><span id="statusText"></span></div>
+  <button type="button" class="jump-latest" id="btnJumpLatest" hidden>回到最新</button>
 
   <!-- 识别结果可编辑区 -->
   <div class="asr-edit" id="asrEdit" hidden>
@@ -129,9 +144,9 @@
   <footer class="inputbar" id="inputbar">
     <button class="icon-btn round" id="btnPhoto" title="拍照或选择照片" aria-label="拍照或选择照片"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5l1.5-2h5L16 5h3a2 2 0 012 2v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2z"/><circle cx="12" cy="12" r="4"/></svg></button>
     <div class="text-wrap">
-      <input type="text" id="textInput" aria-label="消息" placeholder="发消息或点右侧说话…" autocomplete="off" enterkeyhint="send">
+      <textarea id="textInput" name="message" rows="1" aria-label="消息" placeholder="发消息或点右侧说话…" autocomplete="off" enterkeyhint="send"></textarea>
     </div>
-    <button class="mode-toggle" id="btnModeToggle" aria-label="按住说话，松开结束">按住说话<span id="modeIcon" hidden></span><span id="modeLabel" hidden></span></button>
+    <button class="mode-toggle" id="btnModeToggle" aria-label="按住说话，松开结束"><span class="hold-copy">按住说话</span><span class="hold-live" aria-live="polite"></span><span id="modeIcon" hidden></span><span id="modeLabel" hidden></span></button>
     <button class="icon-btn round" id="btnMore" aria-label="更多功能" aria-expanded="false" aria-controls="attachmentMenu"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M7 12h10"/></svg></button>
     <button class="send-btn" id="btnSend" aria-label="发送" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5m-6 6l6-6 6 6"/></svg></button>
     <button class="send-btn stop" id="btnStop" hidden aria-label="停止生成">停止</button>
@@ -139,6 +154,15 @@
     <input type="file" id="audioFileInput" accept="audio/*" capture="user" hidden>
   </footer>
 
+  <div class="voice-inline" id="voiceInline" role="status" hidden><span id="voiceInlineHint">松开结束，上移取消</span><button type="button" id="btnInlineCancel">取消录音</button></div>
+  </section>
+  </div>
+  <dialog id="animalViewer" class="animal-viewer" aria-labelledby="animalViewerTitle">
+    <div class="viewer-head"><strong id="animalViewerTitle"></strong><button type="button" id="btnViewerClose" aria-label="关闭图片">关闭</button></div>
+    <img id="animalViewerImage" alt="">
+    <p id="animalViewerPrompt"></p><p id="animalViewerCredit"></p>
+    <button type="button" id="btnViewerReveal">看看它怎样隐藏</button><p id="animalViewerAnswer" hidden></p>
+  </dialog>
   <!-- 录音浮层 -->
   <div class="rec-layer" id="recLayer" role="dialog" aria-label="语音输入" aria-hidden="true" hidden>
     <div class="rec-card">
@@ -152,11 +176,12 @@
   </div>
 
 </div>
-<script src="/static/live-transcription.js?v=20261015hold1"></script>
-<script src="/static/hold-to-talk.js?v=20261025voiceui1"></script>
-<script src="/static/speech-envelope.js?v=20261025mouth5"></script>
-<script src="/static/app.js?v=20261025mouth5"></script>
-<script src="/static/2d-character.js?v=20261025mouth5"></script>
-<script src="/static/companion.js?v=20261025voiceui3"></script>
+<script src="/static/live-transcription.js?v=20261026cloudfix1"></script>
+<script src="/static/hold-to-talk.js?v=20261026cloudfix1"></script>
+<script src="/static/speech-envelope.js?v=20261026cloudfix1"></script>
+<script src="/static/app.js?v=20261026cloudfix1"></script>
+<script src="/static/2d-character.js?v=20261026cloudfix1"></script>
+<script src="/static/companion.js?v=20261026cloudfix1"></script>
+<script src="/static/classroom.js?v=20261026cloudfix1"></script>
 </body>
 </html>

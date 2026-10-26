@@ -59,12 +59,14 @@ from backend.adapters.errors import NotConfigured, RateLimited, UpstreamError  #
 from backend.adapters.llm import LLMClient, summarize  # noqa: E402
 from backend.adapters.tts import TTSClient      # noqa: E402
 from backend.adapters.vision import VisionClient  # noqa: E402
+from backend import media as media_mod            # noqa: E402
 from backend.knowledge import demo_responder, prompts  # noqa: E402
 from backend.knowledge import interactions
 from backend.knowledge import followups
 from backend.session import RateLimiter, SessionStore  # noqa: E402
 
 VERSION = '1.0.0'
+RELEASE = '20261026cloudfix1'
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WEB_DIR = os.path.join(PROJECT_ROOT, 'web')
 ASSETS_DIR = os.path.join(PROJECT_ROOT, 'assets')
@@ -77,6 +79,7 @@ class AppState:
         self.store = SessionStore(ttl_hours=self.cfg['limits']['session_ttl_hours'])
         self.limiter = RateLimiter()
         self.cancels = {}
+        self.generations = {}
         self.cancel_lock = threading.RLock()
         self.started_at = time.time()
         self.suggestion_cache = {}
@@ -94,16 +97,35 @@ class AppState:
         self._build_clients()
 
     # ---- 取消生成 ----
-    def set_cancel(self, sid, flag=True):
+    def begin_generation(self, sid, request_id):
         with self.cancel_lock:
+            previous = self.generations.get(sid)
+            if previous: previous['event'].set()
+            generation = {'id': request_id, 'event': threading.Event()}
+            self.generations[sid] = generation
+            self.cancels.pop(sid, None)
+            return generation
+
+    def is_current(self, sid, generation):
+        with self.cancel_lock:
+            return self.generations.get(sid) is generation
+
+    def set_cancel(self, sid, flag=True, request_id=None):
+        with self.cancel_lock:
+            current = self.generations.get(sid)
+            if request_id and (not current or current['id'] != request_id): return
+            if current and flag: current['event'].set()
             self.cancels[sid] = flag
 
-    def is_cancelled(self, sid):
+    def is_cancelled(self, sid, generation=None):
         with self.cancel_lock:
+            if generation is not None: return generation['event'].is_set()
             return bool(self.cancels.get(sid))
 
-    def clear_cancel(self, sid):
+    def clear_cancel(self, sid, generation=None):
         with self.cancel_lock:
+            if generation is not None and self.generations.get(sid) is not generation: return
+            self.generations.pop(sid, None)
             self.cancels.pop(sid, None)
 
 
@@ -269,6 +291,8 @@ class Handler(BaseHTTPRequestHandler):
         if path == '/api/health':
             return self._send_json({
                 'ok': True, 'service': 'xiaoyin-course-agent', 'version': VERSION,
+                'release': RELEASE, 'revision': os.environ.get('RENDER_GIT_COMMIT', ''),
+                'local_desktop_mode': os.environ.get('FOREST_LOCAL_DESKTOP') == '1',
                 'uptime_seconds': int(time.time() - STATE.started_at),
                 'capabilities': cfgmod.capability_report(STATE.cfg),
                 'sessions_in_memory': len(STATE.store._cache),
@@ -342,7 +366,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == '/api/chat/stop':
             body = self._read_json()
             sid = body.get('session_id')
-            STATE.set_cancel(sid, True)
+            STATE.set_cancel(sid, True, request_id=body.get('request_id'))
             return self._send_json({'ok': True, 'message': '已请求停止生成', 'session_id': sid})
         if path == '/api/asr':
             return self._asr()
@@ -350,6 +374,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._tts()
         if path == '/api/vision':
             return self._vision()
+        if path == '/api/media/search':
+            return self._media_search()
         if path == '/api/admin/config':
             return self._admin(self._update_config)
         return self._send_json({'ok': False, 'error': 'not_found', 'path': path}, 404)
@@ -488,6 +514,11 @@ class Handler(BaseHTTPRequestHandler):
                 'auto_play': True,
             },
             'vision': cap['vision'],
+            'media': {
+                'image_search': cap['image_search'],
+                'local_library_count': media_mod.LocalAnimalLibrary().count(),
+                'note': '本地图库照片已核对物种与许可；联网结果来自第三方网页，须按来源要求使用。',
+            },
             'lan_hint': {'primary_ip': ip, 'port': cfg['server']['port'],
                          'public_base_url': base},
             'demo': {'enabled': cap['llm']['demo_mode'], 'label': cfg['modes']['demo_label']},
@@ -570,7 +601,8 @@ class Handler(BaseHTTPRequestHandler):
             if isinstance(d, dict) and d.get(key):
                 v = str(d[key])
                 d[key] = ('****' + v[-4:]) if len(v) > 4 else '****'
-        for path in (('llm', 'primary'), ('llm', 'fallback'), ('vision',), ('asr',), ('tts',)):
+        for path in (('llm', 'primary'), ('llm', 'fallback'), ('vision',), ('asr',), ('tts',),
+                     ('image_search',)):
             node = cfg
             for p in path:
                 node = node.get(p, {}) if isinstance(node, dict) else {}
@@ -699,6 +731,7 @@ class Handler(BaseHTTPRequestHandler):
                             'message': '当前使用人数较多，请稍后再试'})
             return self._sse_end()
 
+        generation = STATE.begin_generation(sid, str(body.get('request_id') or '')[:128])
         s.stage_id = interactions.resolve_id(body.get('stage_id') or s.stage_id)
 
         # 上下文（保证最近 ≥min_keep_turns 轮完整进入模型）
@@ -718,8 +751,6 @@ class Handler(BaseHTTPRequestHandler):
 
         s.add('user', text, kind=body.get('input_kind', 'text'))
         STATE.store.persist(s)
-        STATE.clear_cancel(sid)
-
         self._sse_start()
         self._sse_send({'type': 'meta', 'context': ctx_meta, 'mode': mode,
                         'stage_id': s.stage_id, 'interaction_name': interactions.profile(s.stage_id)['name'],
@@ -730,13 +761,13 @@ class Handler(BaseHTTPRequestHandler):
 
         full = []
         try:
-            gen, meta = STATE.llm.generate(messages, cancel_check=lambda: STATE.is_cancelled(sid))
+            gen, meta = STATE.llm.generate(messages, cancel_check=lambda: STATE.is_cancelled(sid, generation))
             self._sse_send({'type': 'model', 'provider': meta.get('provider'), 'model': meta.get('model'),
                             'role': meta.get('role'), 'is_real_ai': meta.get('is_real_ai', False),
                             'degraded': meta.get('degraded', False),
                             'demo_label': meta.get('demo_label'), 'note': meta.get('note')})
             for delta in gen:
-                if STATE.is_cancelled(sid):
+                if STATE.is_cancelled(sid, generation):
                     break
                 full.append(delta)
                 self._sse_send({'type': 'delta', 'text': delta})
@@ -748,13 +779,14 @@ class Handler(BaseHTTPRequestHandler):
                             'message': cfgmod.redact(str(e))})
 
         answer = ''.join(full).strip()
-        stopped = STATE.is_cancelled(sid)
-        if answer:
-            s.add('assistant', answer)
-            STATE.store.persist(s)
+        stopped = STATE.is_cancelled(sid, generation)
+        with STATE.cancel_lock:
+            if answer and STATE.is_current(sid, generation):
+                s.add('assistant', answer)
+                STATE.store.persist(s)
         self._sse_send({'type': 'done', 'stopped': stopped, 'chars': len(answer),
                         'turns': s.turns(), 'session_id': sid})
-        STATE.clear_cancel(sid)
+        STATE.clear_cancel(sid, generation)
         return self._sse_end()
 
     # ---------------- 语音 / 图片 ----------------
@@ -845,6 +877,28 @@ class Handler(BaseHTTPRequestHandler):
             STATE.store.persist(s)
         return self._send_json({'ok': True, 'text': text, 'saved_original': False,
                                 'note': '原图未保存，仅在服务端内存中临时处理。'})
+
+    def _media_search(self):
+        """图片检索：本地已核对图库优先；云端使用独立搜索密钥，失败如实回退。"""
+        body = self._read_json()
+        query = (body.get('query') or '').strip()
+        if len(query) > 100:
+            query = query[:100]
+        prefer = body.get('prefer') or 'cloud'
+        if prefer not in ('cloud', 'local'):
+            prefer = 'cloud'
+        # 频率限制：避免课堂上反复触发云端搜索。
+        ok, _ = STATE.limiter.allow('media:global', 60)
+        if not ok:
+            return self._send_json({'ok': False, 'error': 'rate_limited',
+                                    'message': '图片搜索有点频繁，请稍后再试。'}, 429)
+        try:
+            result = media_mod.media_search(STATE.cfg, query,
+                                            session_id=body.get('session_id'), prefer=prefer)
+            return self._send_json(result)
+        except Exception as exc:  # 检索整体失败也不能返回伪造结果
+            return self._send_json({'ok': False, 'error': 'media_error',
+                                    'message': cfgmod.redact(str(exc))}, 502)
 
 
 def main():

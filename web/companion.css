@@ -1,5 +1,6 @@
 .view-switch{display:flex;flex:none;gap:3px;align-self:center;background:#eee9e0;border-radius:10px;padding:3px;margin:0 0 12px;z-index:2}
-.view-switch button{border:0;border-radius:8px;background:transparent;color:#77766c;padding:8px 24px;font:inherit;font-size:14px;cursor:pointer}
+.view-switch button{border:0;border-radius:8px;background:transparent;color:#5f675f;padding:8px 24px;min-height:44px;font:inherit;font-size:14px;cursor:pointer}
+.view-switch button:hover{color:#2f4d37}
 .view-switch button[aria-pressed=true]{background:#fffdf8;color:#355341;box-shadow:0 1px 5px #493b2310;font-weight:650}
 .companion{position:relative;flex:1;min-height:0;isolation:isolate;overflow:hidden;background-color:#dff4d3;background-image:url('/assets/background_candidates/森林探险_自然绘本背景_v1.webp?v=20261025bg1');background-position:center center;background-size:cover;background-repeat:no-repeat;border-radius:28px 28px 0 0;display:flex;flex-direction:column;align-items:center}
 .companion:before,.companion:after{display:none}
@@ -8,6 +9,11 @@
 .companion-heading h1{font-size:25px;letter-spacing:3px;font-weight:650;color:#3b5141;margin:3px 0}
 .character-stage{position:absolute;inset:54px 0 196px;width:100%;border:0;padding:0;background:transparent;cursor:pointer;touch-action:pan-y;outline-offset:-4px;color:#65765b;font:inherit;font-size:13px}
 .character-stage canvas{display:block;width:100%;height:100%;pointer-events:none}
+.character-poster{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:contain;pointer-events:none}
+.character-stage[data-render-mode="animated"] .character-poster{visibility:hidden}
+.character-stage:not([data-render-mode="animated"]) canvas{visibility:hidden}
+.startup-error{display:flex;flex:none;align-items:center;justify-content:space-between;gap:8px;margin:4px 12px 8px;padding:9px 12px;border:1px solid #e2c788;border-radius:10px;background:#fff4d9;color:#624a25;font-size:13px;line-height:1.5}
+.startup-error button{font:inherit;flex:none;min-height:36px;padding:5px 10px;border:1px solid #bdab7d;border-radius:7px;background:#fffdf8;color:#624a25;cursor:pointer}
 #modelLoading{position:absolute;left:0;right:0;top:45%;text-align:center;padding:18px}
 .companion-bottom{margin-top:auto;position:relative;z-index:1;width:min(100%,600px);padding:0 24px max(16px,env(safe-area-inset-bottom));text-align:center;background:linear-gradient(0deg,#e9eddec9,transparent)}
 .companion-state{display:inline-block;font-size:13px;color:#344c3b;margin:0 0 8px;min-height:22px;padding:4px 12px;border-radius:999px;background:#fffdf8d9;text-shadow:0 1px 1px #ffffff;backdrop-filter:blur(4px)}

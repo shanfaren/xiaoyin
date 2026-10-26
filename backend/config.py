@@ -62,6 +62,15 @@ DEFAULTS = {
         "api_key_env": "ARK_API_KEY",
         "enabled": False
     },
+    "image_search": {
+        "provider": "doubao_custom",
+        "base_url": "https://open.feedcoopapi.com",
+        "api_key": "",
+        "api_key_env": "DOUBAO_SEARCH_API_KEY",
+        "enabled": False,
+        "count": 6,
+        "timeout_seconds": 10
+    },
     "asr": {
         "provider": "ark_audio",
         "base_url": "https://ark.cn-beijing.volces.com/api/plan/v3",
@@ -105,6 +114,7 @@ DEFAULTS = {
 _SECRET_PATHS = [
     ('llm', 'primary', 'api_key'), ('llm', 'fallback', 'api_key'),
     ('vision', 'api_key'), ('asr', 'api_key'), ('tts', 'api_key'),
+    ('image_search', 'api_key'),
 ]
 
 
@@ -132,12 +142,15 @@ def _env_override(cfg):
         ('llm', 'fallback', 'model'): 'DEEPSEEK_MODEL',
         ('vision', 'api_key'): 'ARK_API_KEY',
         ('vision', 'model'): 'ARK_VISION_MODEL',
+        ('image_search', 'api_key'): 'DOUBAO_SEARCH_API_KEY',
+        ('image_search', 'base_url'): 'DOUBAO_SEARCH_BASE_URL',
         ('asr', 'provider'): 'ASR_PROVIDER',
         ('asr', 'base_url'): 'ASR_BASE_URL',
         ('asr', 'model'): 'ASR_MODEL',
         ('asr', 'credential_source'): 'ASR_CREDENTIAL_SOURCE',
         ('asr', 'api_key'): 'ASR_API_KEY',
         ('asr', 'app_id'): 'ASR_APP_ID',
+        ('asr', 'resource_id'): 'ASR_RESOURCE_ID',
         ('tts', 'api_key'): 'TTS_API_KEY',
         ('tts', 'voice'): 'TTS_VOICE',
     }
@@ -163,6 +176,9 @@ def _env_override(cfg):
     vis = cfg['vision']
     if str(vis.get('api_key') or '').strip() and str(vis.get('base_url') or '').strip() and vis.get('model'):
         vis['enabled'] = True
+    ims = cfg['image_search']
+    if str(ims.get('api_key') or '').strip() and str(ims.get('base_url') or '').strip():
+        ims['enabled'] = True
     tts = cfg['tts']
     # 音色属于角色身份；历史文件、环境变量和单次请求均不能改换它。
     tts.update(fixed_settings())
@@ -233,6 +249,8 @@ def capability_report(cfg):
     asr_ready = bool(asr.get('enabled')) and has_key(asr) and bool(asr.get('base_url'))
     tts = cfg['tts']
     tts_ready = bool(tts.get('enabled')) and has_key(tts) and bool(tts.get('base_url'))
+    ims = cfg['image_search']
+    image_search_ready = bool(ims.get('enabled')) and has_key(ims) and bool(ims.get('base_url'))
     demo = bool(cfg['modes']['demo'])
 
     if primary_ready or fallback_ready:
@@ -256,6 +274,13 @@ def capability_report(cfg):
         'vision': {'state': 'configured' if vision_ready else 'unconfigured',
                    'label': '图片分析已配置' if vision_ready else '图片分析未配置（需多模态模型，DeepSeek 文本模型不支持看图）',
                    'provider': vis.get('provider'), 'model': vis.get('model') or ''},
+        'image_search': {
+            'state': 'configured' if image_search_ready else 'unconfigured',
+            'label': '联网图片搜索已配置（专用密钥）' if image_search_ready else '联网图片搜索未配置（本地图库仍可用；需独立搜索密钥 DOUBAO_SEARCH_API_KEY）',
+            'provider': ims.get('provider'),
+            'base_url': ims.get('base_url'),
+            # 升级对话模型不等于开通搜索；只按是否配置独立密钥报告状态。
+        },
         'asr': {'state': 'configured' if asr_ready else 'unconfigured',
                 'label': '语音识别已配置' if asr_ready else '语音识别（ASR）未配置——语音对话链路不完整，可先用文字输入',
                 'provider': asr.get('provider') or '', 'model': asr.get('model') or ''},

@@ -22,6 +22,9 @@
 }
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+.skip-link{position:fixed;left:12px;top:8px;z-index:1000;transform:translateY(-160%);background:var(--forest-700);color:#fff;padding:9px 14px;border-radius:8px;font-size:14px;text-decoration:none}
+.skip-link:focus{transform:translateY(0);outline:3px solid #fff;outline-offset:2px}
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
 button,[role="button"],button *{user-select:none!important;-webkit-user-select:none!important;-moz-user-select:none!important;-ms-user-select:none!important;-webkit-touch-callout:none!important;}
 /* 关键：本页多处元素同时使用 hidden 属性与 display:flex/grid 规则，
    作者样式会覆盖 UA 的 [hidden]{display:none}，导致浮层/预览/状态栏默认全部显示。
@@ -62,7 +65,7 @@ body{
 .brand-sub{font-size:12.5px;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .icon-btn{
   border:none;background:var(--white);color:var(--forest-700);border-radius:12px;
-  width:40px;height:40px;font-size:19px;box-shadow:var(--shadow-sm);cursor:pointer;
+  width:44px;height:44px;min-width:44px;min-height:44px;font-size:19px;box-shadow:var(--shadow-sm);cursor:pointer;
 }
 .icon-btn.round{border-radius:999px;width:44px;height:44px;font-size:20px;}
 
@@ -113,6 +116,8 @@ body{
   cursor:pointer;font-family:inherit;
 }
 .chip:active{transform:scale(.985);}
+.quick-more{margin-top:4px;border:0;background:transparent;color:#526b59;font:inherit;font-size:13px;font-weight:650;padding:8px 2px;min-height:44px;cursor:pointer;align-self:flex-start}
+.quick-more:focus-visible,.quick-more:hover{color:var(--forest-900);text-decoration:underline;text-underline-offset:3px}
 
 .voice-entry{margin-top:6px;display:flex;flex-direction:column;gap:8px;}
 .voice-big{
@@ -165,6 +170,8 @@ body{
   font-size:15px;font-weight:700;color:var(--forest-700);
   padding:8px 12px;background:rgba(255,255,255,.9);border-top:1px solid var(--leaf-200);
 }
+.jump-latest{position:absolute;right:20px;bottom:88px;z-index:12;border:1px solid #b8cab9;border-radius:999px;background:#fffdf8f2;color:#294c34;padding:9px 14px;font:inherit;font-size:13px;font-weight:650;box-shadow:0 5px 18px #1e402833;cursor:pointer}
+.jump-latest:focus-visible{outline:2px solid #6e9065;outline-offset:3px}
 .spinner{
   width:15px;height:15px;border-radius:999px;border:2.5px solid var(--leaf-200);
   border-top-color:var(--forest-700);animation:spin .8s linear infinite;
@@ -199,7 +206,7 @@ body{
 
 /* ---------- 底部输入 ---------- */
 .inputbar{
-  display:flex;align-items:center;gap:8px;
+  display:flex;align-items:flex-end;gap:8px;
   padding:10px 12px calc(10px + var(--safe-b));
   background:rgba(255,255,255,.96);backdrop-filter:blur(8px);
   border-top:1px solid var(--leaf-200);
@@ -211,12 +218,13 @@ body{
   cursor:pointer;min-width:52px;line-height:1.25;
 }
 .mode-toggle span:first-child{font-size:17px;}
-.text-wrap{flex:1;min-width:0;}
+.text-wrap{flex:1;min-width:0;display:flex;}
 #textInput{
-  width:100%;border:1.5px solid var(--leaf-200);border-radius:999px;padding:12px 15px;
-  font-size:17px;font-family:inherit;background:var(--cream);color:var(--ink);
+  width:100%;min-height:44px;max-height:112px;border:1.5px solid var(--leaf-200);border-radius:18px;padding:10px 15px;
+  font-size:17px;line-height:1.45;font-family:inherit;background:var(--cream);color:var(--ink);resize:none;overflow-y:hidden;
 }
 #textInput:focus{outline:none;border-color:var(--forest-500);background:var(--white);}
+.inputbar:focus-within{border-color:#7fa083;box-shadow:0 0 0 3px #7fa08333,0 3px 12px #00000015}
 .send-btn{
   border:none;border-radius:999px;background:var(--forest-700);color:var(--white);
   padding:12px 17px;font-size:16.5px;font-weight:800;font-family:inherit;cursor:pointer;flex:0 0 auto;

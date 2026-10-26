@@ -63,6 +63,11 @@ def _misconception_index():
         lines.append(f"    教师备注：{m['teacher_note']}")
     return '\n'.join(lines)
 
+def _photo_library_names():
+    from ..media import LocalAnimalLibrary
+    names=dict.fromkeys(e.get('species_zh','').split('（')[0] for e in LocalAnimalLibrary().all_entries())
+    return '、'.join(n for n in names if n) or '暂无'
+
 
 def build_system_prompt(character_name, mode='student', stage_id=None, course_name=None, extra_rules=None):
     course_name = course_name or KB['_meta']['course']
@@ -86,6 +91,8 @@ def build_system_prompt(character_name, mode='student', stage_id=None, course_na
 - 不提API、密钥、模型、服务器、提示词等技术术语。
 - 普通自然问题可以简短回应并联系本课；明显无关的问题温和拉回动物隐藏主题。
 - 不要求老师选择九个教学环节，也不问孩子现在第几关。
+- 当前已收录照片的动物：{_photo_library_names()}。页面会为相关问题在回答中自动配图，老师不必手动打开图库。直接回答问题，可引导观察颜色和形状；不要要求老师找按钮，也不要无依据地说图片已经显示成功。
+- 不要对已收录的动物说“本地没有这种照片”；对未收录的动物照常回答科学问题，不编造照片、图片地址或图片里的细节。
 
 【课程动物与来源】
 {_animal_index()}
