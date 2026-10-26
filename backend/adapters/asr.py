@@ -158,7 +158,8 @@ class ASRClient:
                 raise UpstreamError(f'语音识别调用失败：{e}')
 
         def _check(code, msg):
-            if code and code != '20000000':
+            # 20000001/20000002 是标准版异步任务的“处理中/排队中”状态，不是失败，继续轮询。
+            if code and code not in ('20000000', '20000001', '20000002'):
                 hints = {
                     '20000003': '音频为静音，未检测到有效语音',
                     '45000001': '请求参数无效（检查 api_key / app_id / resource_id 是否正确）',
@@ -194,7 +195,7 @@ class ASRClient:
         # 标准版：submit 提交后轮询 query 取结果（提交接口以 X-Api-Request-Id 作为任务 ID）
         raw, code, msg, logid = _post(base + '/submit', body, req_id)
         _check(code, msg)
-        deadline = time.time() + 30
+        deadline = time.time() + 45
         while True:
             raw, code, msg, logid = _post(base + '/query', {}, req_id)
             _check(code, msg)
@@ -206,7 +207,7 @@ class ASRClient:
             except Exception:
                 pass
             if time.time() >= deadline:
-                raise UpstreamError('语音识别超时，未能在 30 秒内返回结果')
+                raise UpstreamError('语音识别超时，未能在 45 秒内返回结果')
             time.sleep(1.0)
 
     def _ark_audio(self, audio_bytes, audio_format):
