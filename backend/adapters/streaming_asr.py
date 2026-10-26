@@ -283,7 +283,8 @@ class StreamingASRClient:
         config = {
             'user': {'uid': app_id or 'xiaoyin'},
             'audio': {'format': 'pcm', 'rate': 16000, 'bits': 16, 'channel': 1, 'codec': 'raw'},
-            'request': {'model_name': 'bigmodel', 'enable_punc': True, 'enable_itn': True},
+            'request': {'model_name': 'bigmodel', 'enable_punc': True, 'enable_itn': True,
+                        'result_type': 'full', 'show_utterances': True},
         }
         ws.send_binary(_pack(
             MSG_FULL_CLIENT_REQUEST, FLAG_NONE,
