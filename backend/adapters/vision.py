@@ -21,6 +21,7 @@ import base64
 import json
 import urllib.error
 import urllib.request
+from .network import open_request
 
 from .errors import NotConfigured, UpstreamError
 
@@ -88,7 +89,7 @@ class VisionClient:
             headers={'Content-Type': 'application/json', 'Authorization': f"Bearer {v['api_key']}"},
             method='POST')
         try:
-            resp = urllib.request.urlopen(req, timeout=int(self.cfg['llm'].get('timeout_seconds', 60)))
+            resp = open_request(req, int(self.cfg['llm'].get('timeout_seconds', 60)))
             obj = json.loads(resp.read().decode('utf-8', 'ignore'))
         except urllib.error.HTTPError as e:
             body = ''

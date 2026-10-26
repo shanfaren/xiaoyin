@@ -639,8 +639,7 @@
     var seq = S.audioSeq;
     if (typeof ttsOk === 'undefined') ttsOk = !!(S.cfg && S.cfg.voice && S.cfg.voice.tts && S.cfg.voice.tts.state === 'configured');
     if (ttsOk) {
-      setStatus('准备朗读…');
-      setAvatarState('thinking');
+      setStatus('');
       fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

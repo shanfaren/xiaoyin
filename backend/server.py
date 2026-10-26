@@ -37,6 +37,7 @@
 import argparse
 import base64
 import json
+import ipaddress
 import mimetypes
 import os
 import re
@@ -46,7 +47,7 @@ import time
 import traceback
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import unquote
+from urllib.parse import unquote, urlsplit
 
 # 允许 `python backend/server.py` 直接运行
 if __package__ in (None, ''):
@@ -69,7 +70,7 @@ from backend.knowledge import followups
 from backend.session import RateLimiter, SessionStore  # noqa: E402
 
 VERSION = '1.0.0'
-RELEASE = '20261026asr1'
+RELEASE = '20261027audit1'
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 WEB_DIR = os.path.join(PROJECT_ROOT, 'web')
 ASSETS_DIR = os.path.join(PROJECT_ROOT, 'assets')
@@ -167,7 +168,23 @@ class Handler(BaseHTTPRequestHandler):
         if not host:
             return ''
         proto = (self.headers.get('X-Forwarded-Proto') or '').split(',')[0].strip() or 'https'
+        if proto not in ('http', 'https'):
+            return ''
+        try:
+            hostname = urlsplit(f'{proto}://{host}').hostname or ''
+            if hostname.lower().rstrip('.') == 'localhost':
+                return ''
+            try:
+                if not ipaddress.ip_address(hostname).is_global:
+                    return ''
+            except ValueError:
+                pass  # A public DNS name is supplied by the trusted proxy.
+        except ValueError:
+            return ''
         return f'{proto}://{host}'
+
+    def _service_port(self):
+        return getattr(self.server, 'server_port', STATE.cfg['server']['port'])
 
     def _admin_allowed(self):
         tok = str(STATE.cfg['server'].get('admin_token') or '').strip()
@@ -560,8 +577,8 @@ class Handler(BaseHTTPRequestHandler):
 
     def _network_info(self):
         cfg = STATE.cfg
-        port = cfg['server']['port']
-        base = cfg['server'].get('public_base_url') or ''
+        port = self._service_port()
+        base = cfg['server'].get('public_base_url') or self._public_origin()
         cands = netutil.candidate_urls(port, base)
         for c in cands:
             c['check'] = netutil.check_url(c['url'])
@@ -592,7 +609,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def _access_info(self):
         cfg = STATE.cfg
-        port = cfg['server']['port']
+        port = self._service_port()
         base = cfg['server'].get('public_base_url') or self._public_origin()
         cands = netutil.candidate_urls(port, base)
         lan = [c for c in cands if c['kind'] == 'lan']
@@ -659,7 +676,7 @@ class Handler(BaseHTTPRequestHandler):
             if base:
                 target = base.rstrip('/') + '/scan'
             else:
-                target = f"http://{netutil.primary_ip()}:{STATE.cfg['server']['port']}/scan"
+                target = f"http://{netutil.primary_ip()}:{self._service_port()}/scan"
         low = target.lower()
         if 'localhost' in low or '127.0.0.1' in low:
             raise ValueError('禁止将 localhost/127.0.0.1 编码进二维码：学生手机无法访问该地址')

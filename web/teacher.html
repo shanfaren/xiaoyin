@@ -198,7 +198,7 @@
 </div>
 
 <script>
-var S = { sid:'', stage:null, stages:[], last:'' , cap:null };
+var S = { sid:'', stage:null, stages:[], last:'' , cap:null, busy:false, turn:0, controller:null, requestId:'', audio:null, audioUrl:'', playback:0 };
 function $(id){return document.getElementById(id);}
 function jget(u){return fetch(u).then(function(r){return r.json();});}
 function jpost(u,b){return fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})}).then(function(r){return r.json().then(function(j){return {status:r.status,body:j};});});}
@@ -329,18 +329,24 @@ function renderDemoQ(stage){
 
 function send(){
   var text=($('input').value||'').trim();
-  if(!text) return;
+  if(!text || S.busy || !S.sid) return;
+  stopPlayback();
+  S.busy=true;
+  var turn=++S.turn;
+  S.requestId=window.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now()+'-'+Math.random();
+  S.controller=new AbortController();
   $('input').value='';
   msg('u',text);
   var node=msg('a','');
   var acc='';
   $('send').hidden=true; $('stop').hidden=false;
-  fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({session_id:S.sid,text:text,mode:$('modeSel').value,stage_id:S.stage})})
+  fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},signal:S.controller.signal,
+    body:JSON.stringify({session_id:S.sid,text:text,mode:$('modeSel').value,stage_id:S.stage,request_id:S.requestId})})
   .then(function(resp){
     if(!resp.ok||!resp.body) throw new Error('HTTP '+resp.status);
     var rd=resp.body.getReader(),dec=new TextDecoder('utf-8'),buf='';
     function pump(){return rd.read().then(function(r){
+      if(turn!==S.turn)return;
       if(r.done)return;
       buf+=dec.decode(r.value,{stream:true});
       var i;
@@ -365,20 +371,41 @@ function send(){
       return pump();
     });}
     return pump();
-  }).catch(function(e){ msg('err','请求失败：'+e.message); })
-  .then(function(){ $('send').hidden=false;$('stop').hidden=true; S.last=acc; });
+  }).catch(function(e){ if(turn===S.turn&&e.name!=='AbortError')msg('err','请求失败：'+e.message); })
+  .then(function(){ if(turn!==S.turn)return;S.busy=false;S.controller=null;$('send').hidden=false;$('stop').hidden=true; S.last=acc; });
+}
+
+function stopReply(){
+  var busy=S.busy,requestId=S.requestId;
+  ++S.turn;
+  if(S.controller)S.controller.abort();
+  S.controller=null;S.busy=false;
+  $('send').hidden=false;$('stop').hidden=true;
+  if(busy)return jpost('/api/chat/stop',{session_id:S.sid,request_id:requestId}).catch(function(){});
+  return Promise.resolve();
+}
+function stopPlayback(){
+  ++S.playback;
+  if(S.audio){S.audio.pause();S.audio=null;}
+  if(S.audioUrl){URL.revokeObjectURL(S.audioUrl);S.audioUrl='';}
+  if(window.speechSynthesis)speechSynthesis.cancel();
 }
 
 function bind(){
+  $('collapse').hidden=!(window.XiaoyinHost&&window.XiaoyinHost.collapse);
   $('send').addEventListener('click',send);
   $('input').addEventListener('keydown',function(e){
-    if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}
+    if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing&&e.keyCode!==229){e.preventDefault();send();}
   });
   $('stop').addEventListener('click',function(){
-    jpost('/api/chat/stop',{session_id:S.sid}).then(function(){ line('已请求停止生成'); });
+    stopReply().then(function(){ line('已请求停止生成'); });
   });
   $('clear').addEventListener('click',function(){
-    jpost('/api/session/'+S.sid+'/clear').then(function(){ $('chat').innerHTML=''; line('本会话已清空'); });
+    stopPlayback();S.last='';
+    stopReply().then(function(){return jpost('/api/session/'+S.sid+'/clear');}).then(function(r){
+      if(!r.body.ok)throw new Error(r.body.message||'清空失败');
+      $('chat').innerHTML='';line('本会话已清空');
+    }).catch(function(e){msg('err','清空失败：'+e.message);});
   });
   $('collapse').addEventListener('click',function(){
     if(window.XiaoyinHost&&window.XiaoyinHost.collapse){ window.XiaoyinHost.collapse(); }
@@ -386,16 +413,24 @@ function bind(){
   });
   $('play').addEventListener('click',function(){
     if(!S.last){ line('还没有可播放的回复'); return; }
+    stopPlayback();var playback=S.playback,text=S.last;
     fetch('/api/tts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:S.last})})
       .then(function(r){ if(!r.ok) throw new Error('未配置语音合成'); return r.blob(); })
-      .then(function(b){ new Audio(URL.createObjectURL(b)).play(); })
+      .then(function(b){
+        if(playback!==S.playback)return;
+        S.audioUrl=URL.createObjectURL(b);S.audio=new Audio(S.audioUrl);
+        S.audio.onended=function(){if(playback===S.playback)stopPlayback();};
+        return S.audio.play();
+      })
       .catch(function(e){
-        if(window.speechSynthesis){ var u=new SpeechSynthesisUtterance(S.last);u.lang='zh-CN';speechSynthesis.speak(u);line('已改用浏览器朗读（备选方案）：'+e.message); }
+        if(playback!==S.playback)return;
+        stopPlayback();
+        if(window.speechSynthesis){ var u=new SpeechSynthesisUtterance(text);u.lang='zh-CN';speechSynthesis.speak(u);line('已改用浏览器朗读（备选方案）：'+e.message); }
         else line('播放失败：'+e.message);
       });
   });
   $('stopPlay').addEventListener('click',function(){
-    if(window.speechSynthesis) speechSynthesis.cancel();
+    stopPlayback();
     line('已停止播放');
   });
   $('saveCfg').addEventListener('click',saveConfig);
